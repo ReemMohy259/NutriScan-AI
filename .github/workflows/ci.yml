@@ -85,7 +85,9 @@ jobs:
           path: docs
 
   deploy-pages:
-    if: github.ref == 'refs/heads/main'
+    if: |
+      github.ref == 'refs/heads/main' ||
+      github.base_ref == 'main'
     needs: swagger-pages
     runs-on: ubuntu-latest
 
