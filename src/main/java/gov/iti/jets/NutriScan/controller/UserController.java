@@ -12,10 +12,10 @@ import java.util.Map;
 @RequestMapping("/api/v1/users")
 public class UserController {
 
-//    @GetMapping("/me")
-//    public ResponseEntity<User> getCurrentUser() {
-//
-//    }
+    // @GetMapping("/me")
+    // public ResponseEntity<User> getCurrentUser() {
+    //
+    // }
 
     @GetMapping("/me")
     public Map<String, Object> me(@AuthenticationPrincipal Jwt jwt) {

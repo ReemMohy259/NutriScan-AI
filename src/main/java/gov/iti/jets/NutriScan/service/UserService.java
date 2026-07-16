@@ -31,10 +31,7 @@ public class UserService {
         user.setEmailVerified(false);
         user.setRequiredActions(Collections.emptyList());
 
-        Response response =
-                keycloak.realm("nutriscan")
-                        .users()
-                        .create(user);
+        Response response = keycloak.realm("nutriscan").users().create(user);
 
         String userId = CreatedResponseUtil.getCreatedId(response);
 
@@ -44,9 +41,6 @@ public class UserService {
         password.setTemporary(false);
         password.setValue(request.password());
 
-        keycloak.realm("nutriscan")
-                .users()
-                .get(userId)
-                .resetPassword(password);
+        keycloak.realm("nutriscan").users().get(userId).resetPassword(password);
     }
 }
