@@ -60,6 +60,7 @@ public class Scan {
     private NutritionFact nutritionFact;
 
     @OneToMany
+    @JoinColumn(name = "scan_id")
     private Set<ScanFlaggedIngredient> scanFlaggedIngredients = new LinkedHashSet<>();
 
 }
