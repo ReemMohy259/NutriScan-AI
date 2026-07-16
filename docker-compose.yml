@@ -20,6 +20,8 @@ services:
   postgres-app:
     container_name: postgres-app
     image: postgres:17-alpine
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: ${APP_DB_NAME:-nutri_scan}
       POSTGRES_USER: ${APP_DB_USER:-admin}

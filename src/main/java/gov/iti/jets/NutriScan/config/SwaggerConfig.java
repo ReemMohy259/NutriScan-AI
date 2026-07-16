@@ -10,4 +10,5 @@ import org.springframework.context.annotation.Configuration;
 @OpenAPIDefinition(security = {@SecurityRequirement(name = "bearerAuth")})
 @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT", description = "Enter your JWT token here. Do not include 'Bearer ' in front of it.")
 public class SwaggerConfig {
+
 }
