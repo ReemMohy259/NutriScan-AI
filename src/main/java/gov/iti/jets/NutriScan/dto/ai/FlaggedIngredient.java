@@ -1,4 +1,4 @@
-package gov.iti.jets.NutriScan.dto;
+package gov.iti.jets.NutriScan.dto.ai;
 
 import java.util.List;
 
