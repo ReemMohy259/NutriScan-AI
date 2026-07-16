@@ -1,6 +1,6 @@
 package gov.iti.jets.NutriScan.model;
 
-import gov.iti.jets.NutriScan.dto.Verdict;
+import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
