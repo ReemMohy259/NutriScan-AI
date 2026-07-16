@@ -1,0 +1,36 @@
+name: Spring E-Commerce CI
+
+on:
+  push:
+    branches:
+      - "**"
+
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Java and cache Maven dependencies
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Verify code formatting
+      - name: Spotless formatting check
+        run: mvn spotless:check
+
+      # Build the project
+      - name: Build project
+        run: mvn clean package -DskipTests

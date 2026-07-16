@@ -25,5 +25,4 @@ public class UserDisease {
     @JoinColumn(name = "disease_id", nullable = false)
     private Disease disease;
 
-
 }

@@ -24,5 +24,4 @@ public class UserAllergyId implements Serializable {
     @Column(name = "allergy_id", nullable = false)
     private Integer allergyId;
 
-
 }

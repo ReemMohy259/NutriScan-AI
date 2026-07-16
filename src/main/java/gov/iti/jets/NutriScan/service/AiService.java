@@ -13,7 +13,6 @@ public class AiService {
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
 
-
     public AiService(ChatClient chatClient, ObjectMapper objectMapper) {
         this.chatClient = chatClient;
         this.objectMapper = objectMapper;
@@ -21,10 +20,10 @@ public class AiService {
     public FoodSafetyResult checkSafety(IngredientsSafetyPrompt requestData) {
         String userPrompt = objectMapper.writeValueAsString(requestData);
 
-        return chatClient. prompt()
-                .system(Prompts.FOOD_SAFETY_SYSTEM)
-                .user(userPrompt)
-                .call()
-                .entity(FoodSafetyResult.class);
+        return chatClient.prompt()
+            .system(Prompts.FOOD_SAFETY_SYSTEM)
+            .user(userPrompt)
+            .call()
+            .entity(FoodSafetyResult.class);
     }
 }

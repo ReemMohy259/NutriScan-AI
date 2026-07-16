@@ -25,5 +25,4 @@ public class UserAllergy {
     @JoinColumn(name = "allergy_id", nullable = false)
     private Allergy allergy;
 
-
 }
