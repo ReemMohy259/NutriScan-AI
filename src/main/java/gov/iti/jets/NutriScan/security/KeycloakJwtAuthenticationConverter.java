@@ -17,15 +17,18 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 
-public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
+public class KeycloakJwtAuthenticationConverter
+    implements
+        Converter<Jwt, AbstractAuthenticationToken> {
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt source) {
         return new JwtAuthenticationToken(
-                source,
-                Stream.concat(
-                                new JwtGrantedAuthoritiesConverter().convert(source).stream(),
-                                extractResourceRoles(source).stream())
-                        .collect(toSet()));
+            source,
+            Stream
+                .concat(
+                    new JwtGrantedAuthoritiesConverter().convert(source).stream(),
+                    extractResourceRoles(source).stream())
+                .collect(toSet()));
     }
 
     private Collection<? extends GrantedAuthority> extractResourceRoles(Jwt jwt) {
@@ -36,7 +39,7 @@ public class KeycloakJwtAuthenticationConverter implements Converter<Jwt, Abstra
         var roles = eternal.get("roles");
 
         return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.replace("-", "_")))
-                .collect(toSet());
+            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.replace("-", "_")))
+            .collect(toSet());
     }
 }

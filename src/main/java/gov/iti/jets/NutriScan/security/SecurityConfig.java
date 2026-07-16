@@ -19,26 +19,25 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(req ->
-                        req.requestMatchers(
-                                        "/api/v1/auth/**",
-                                        "/v3/api-docs",
-                                        "/v3/api-docs/**",
-                                        "/swagger-resources",
-                                        "/swagger-resources/**",
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html"
-                                )
-                                .permitAll()
-                                .anyRequest()
-                                .authenticated()
-                )
-                .oauth2ResourceServer(auth ->
-                        auth.jwt(token -> token.jwtAuthenticationConverter(new KeycloakJwtAuthenticationConverter())));
-
+        http.cors(withDefaults())
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(
+                req -> req
+                    .requestMatchers(
+                        "/api/v1/auth/**",
+                        "/v3/api-docs",
+                        "/v3/api-docs/**",
+                        "/swagger-resources",
+                        "/swagger-resources/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+            .oauth2ResourceServer(
+                auth -> auth.jwt(
+                    token -> token
+                        .jwtAuthenticationConverter(new KeycloakJwtAuthenticationConverter())));
 
         return http.build();
     }
@@ -47,11 +46,11 @@ public class SecurityConfig {
     public Keycloak keycloak() {
 
         return KeycloakBuilder.builder()
-                .serverUrl("http://localhost:8081")
-                .realm("master")
-                .clientId("admin-cli")
-                .username("admin")
-                .password("admin")
-                .build();
+            .serverUrl("http://localhost:8081")
+            .realm("master")
+            .clientId("admin-cli")
+            .username("admin")
+            .password("admin")
+            .build();
     }
 }
