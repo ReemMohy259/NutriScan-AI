@@ -48,5 +48,4 @@ public class ScanFlaggedIngredient {
     @Column(name = "created_at")
     private Instant createdAt;
 
-
 }

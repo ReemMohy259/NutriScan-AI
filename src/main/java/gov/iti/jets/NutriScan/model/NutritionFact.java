@@ -48,5 +48,4 @@ public class NutritionFact {
     @Column(name = "created_at")
     private Instant createdAt;
 
-
 }
