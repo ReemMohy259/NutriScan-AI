@@ -1,0 +1,1 @@
+{"openapi":"3.1.0","servers":[{"url":"http://localhost:8080","description":"Generated server url"}],"security":[{"bearerAuth":[]}],"paths":{},"components":{"securitySchemes":{"bearerAuth":{"type":"http","description":"Enter your JWT token here. Do not include 'Bearer ' in front of it.","scheme":"bearer","bearerFormat":"JWT"}}}}
