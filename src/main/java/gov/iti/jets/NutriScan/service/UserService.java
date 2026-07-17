@@ -1,6 +1,9 @@
 package gov.iti.jets.NutriScan.service;
 
-import gov.iti.jets.NutriScan.exception.ResourceNotFoundException;
+import gov.iti.jets.NutriScan.dto.CurrentUserProfileResponse;
+import gov.iti.jets.NutriScan.dto.CurrentUserSummaryResponse;
+import gov.iti.jets.NutriScan.dto.UpdateProfileRequest;
+import gov.iti.jets.NutriScan.exception.UserNotFoundException;
 import gov.iti.jets.NutriScan.model.User;
 import gov.iti.jets.NutriScan.model.UserAllergy;
 import gov.iti.jets.NutriScan.model.UserDisease;
@@ -18,7 +21,7 @@ public class UserService {
 
     public User findById(UUID id) {
         return userRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
 
     public User save(User user) {
@@ -69,5 +72,17 @@ public class UserService {
 
     public boolean existsById(UUID id) {
         return userRepository.existsById(id);
+    }
+
+    public CurrentUserSummaryResponse getCurrentUserSummary() {
+        return null;
+    }
+
+    public CurrentUserProfileResponse getCurrentUserProfile() {
+        return null;
+    }
+
+    public CurrentUserProfileResponse updateUserProfile(UpdateProfileRequest request) {
+        return null;
     }
 }
