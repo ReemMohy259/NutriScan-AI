@@ -1,13 +1,12 @@
 package gov.iti.jets.NutriScan.controller;
 
+import gov.iti.jets.NutriScan.dto.DiseaseRequest;
 import gov.iti.jets.NutriScan.dto.DiseaseResponse;
 import gov.iti.jets.NutriScan.service.DiseaseService;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -19,12 +18,19 @@ public class DiseaseController {
     private final DiseaseService diseaseService;
 
     @GetMapping
-    public ResponseEntity<List<DiseaseResponse>> getAllDiseases() {
-        return ResponseEntity.ok(diseaseService.findAll());
+    public List<DiseaseResponse> getAllDiseases() {
+        return diseaseService.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DiseaseResponse> getDiseaseById(@PathVariable Integer id) {
-        return ResponseEntity.ok(diseaseService.findById(id));
+    public DiseaseResponse getDiseaseById(@PathVariable Integer id) {
+        return diseaseService.findById(id);
+    }
+
+    @PostMapping
+//    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(hidden = true)
+    public List<DiseaseResponse> addAllergies(@RequestBody List<@Valid DiseaseRequest> diseases) {
+        return diseaseService.saveAll(diseases);
     }
 }

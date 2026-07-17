@@ -1,4 +1,6 @@
 package gov.iti.jets.NutriScan.dto;
 
-public record AllergyRequest(String name) {
+import jakarta.validation.constraints.NotBlank;
+
+public record AllergyRequest(@NotBlank String name) {
 }

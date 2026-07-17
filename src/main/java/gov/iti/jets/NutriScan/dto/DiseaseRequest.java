@@ -1,4 +1,6 @@
 package gov.iti.jets.NutriScan.dto;
 
-public record DiseaseRequest(String name) {
+import jakarta.validation.constraints.NotBlank;
+
+public record DiseaseRequest(@NotBlank String name) {
 }

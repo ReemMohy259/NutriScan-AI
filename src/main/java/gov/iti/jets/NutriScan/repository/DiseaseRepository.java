@@ -12,4 +12,5 @@ public interface DiseaseRepository extends JpaRepository<Disease, Integer> {
 
     List<Disease> findByNameContainingIgnoreCase(String name);
 
+    boolean existsByName(String name);
 }
