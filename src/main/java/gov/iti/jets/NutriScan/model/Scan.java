@@ -23,6 +23,7 @@ import java.util.UUID;
 public class Scan {
     @Id
     @Column(name = "id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @NotNull
@@ -56,11 +57,25 @@ public class Scan {
     @Column(name = "created_at")
     private Instant createdAt;
 
-    @OneToOne(mappedBy = "scans")
+    @OneToOne(mappedBy = "scans", cascade = CascadeType.ALL, orphanRemoval = true)
     private NutritionFact nutritionFact;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "scan_id")
     private Set<ScanFlaggedIngredient> scanFlaggedIngredients = new LinkedHashSet<>();
+
+    public void addFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient) {
+        if (scanFlaggedIngredient != null) {
+            scanFlaggedIngredients.add(scanFlaggedIngredient);
+            scanFlaggedIngredient.setScan(this);
+        }
+    }
+
+    public void removeFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient) {
+        if (scanFlaggedIngredient != null) {
+            scanFlaggedIngredients.remove(scanFlaggedIngredient);
+            scanFlaggedIngredient.setScan(null);
+        }
+    }
 
 }
