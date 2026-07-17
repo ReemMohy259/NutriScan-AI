@@ -90,16 +90,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ResponseEntity<ApiErrorResponse> handleConflict(
-            ResourceAlreadyExistsException ex,
-            HttpServletRequest request) {
+        ResourceAlreadyExistsException ex,
+        HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error("ALREADY_EXISTS")
-                .message(ex.getMessage())
-                .path(request.getRequestURL().toString())
-                .build();
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONFLICT.value())
+            .error("ALREADY_EXISTS")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }

@@ -28,9 +28,9 @@ public class AllergyController {
     }
 
     @PostMapping
-//    @PreAuthorize("hasRole('ADMIN')")
+    // @PreAuthorize("hasRole('ADMIN')")
     @Operation(hidden = true)
-    public List<AllergyResponse> addAllergies(@RequestBody List<@Valid AllergyRequest>  allergies){
+    public List<AllergyResponse> addAllergies(@RequestBody List<@Valid AllergyRequest> allergies) {
         return allergyService.saveAll(allergies);
     }
 }

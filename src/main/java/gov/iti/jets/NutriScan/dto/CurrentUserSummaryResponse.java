@@ -4,12 +4,12 @@ import java.util.UUID;
 
 public record CurrentUserSummaryResponse(UUID id,
 
-                                         String firstName,
+    String firstName,
 
-                                         String lastName,
+    String lastName,
 
-                                         String email,
+    String email,
 
-                                         String username) {
+    String username) {
 
 }

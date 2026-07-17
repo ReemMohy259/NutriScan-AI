@@ -28,7 +28,7 @@ public class DiseaseController {
     }
 
     @PostMapping
-//    @PreAuthorize("hasRole('ADMIN')")
+    // @PreAuthorize("hasRole('ADMIN')")
     @Operation(hidden = true)
     public List<DiseaseResponse> addAllergies(@RequestBody List<@Valid DiseaseRequest> diseases) {
         return diseaseService.saveAll(diseases);

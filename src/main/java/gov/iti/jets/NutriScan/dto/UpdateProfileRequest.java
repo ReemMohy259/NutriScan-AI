@@ -9,17 +9,17 @@ import java.util.List;
 
 public record UpdateProfileRequest(@Size(max = 100) String firstName,
 
-                                   @Size(max = 100) String lastName,
+    @Size(max = 100) String lastName,
 
-                                   @Past LocalDate dateOfBirth,
+    @Past LocalDate dateOfBirth,
 
-                                   Gender gender,
+    Gender gender,
 
-                                   @DecimalMin(value = "0.0", inclusive = false) BigDecimal heightCm,
+    @DecimalMin(value = "0.0", inclusive = false) BigDecimal heightCm,
 
-                                   @DecimalMin(value = "0.0", inclusive = false) BigDecimal weightKg,
+    @DecimalMin(value = "0.0", inclusive = false) BigDecimal weightKg,
 
-                                   List<@NotBlank Integer> allergies,
+    List<@NotBlank Integer> allergies,
 
-                                   List<@NotBlank Integer> diseases) {
+    List<@NotBlank Integer> diseases) {
 }

@@ -37,8 +37,9 @@ public class AllergyService {
     }
 
     public AllergyResponse save(AllergyRequest allergyRequest) {
-        if(allergyRepository.existsByName(allergyRequest.name())){
-            throw new AllergyConflictException("Allergy already exists with name: " + allergyRequest.name());
+        if (allergyRepository.existsByName(allergyRequest.name())) {
+            throw new AllergyConflictException(
+                "Allergy already exists with name: " + allergyRequest.name());
         }
 
         Allergy allergy = allergyMapper.toEntity(allergyRequest);
@@ -47,9 +48,10 @@ public class AllergyService {
 
     public List<AllergyResponse> saveAll(List<AllergyRequest> allergyRequests) {
 
-        for(var allergyRequest:allergyRequests){
-            if(allergyRepository.existsByName(allergyRequest.name())){
-                throw new AllergyConflictException("Allergy already exists with name: " + allergyRequest.name());
+        for (var allergyRequest : allergyRequests) {
+            if (allergyRepository.existsByName(allergyRequest.name())) {
+                throw new AllergyConflictException(
+                    "Allergy already exists with name: " + allergyRequest.name());
             }
         }
 

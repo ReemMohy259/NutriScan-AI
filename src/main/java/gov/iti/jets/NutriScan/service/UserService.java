@@ -21,7 +21,7 @@ public class UserService {
 
     public User findById(UUID id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
 
     public User save(User user) {

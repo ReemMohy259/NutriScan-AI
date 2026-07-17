@@ -37,8 +37,9 @@ public class DiseaseService {
     }
 
     public DiseaseResponse save(DiseaseRequest diseaseRequest) {
-        if(diseaseRepository.existsByName(diseaseRequest.name())){
-            throw new DiseaseConflictException("Disease already exists with name: " + diseaseRequest.name());
+        if (diseaseRepository.existsByName(diseaseRequest.name())) {
+            throw new DiseaseConflictException(
+                "Disease already exists with name: " + diseaseRequest.name());
         }
 
         Disease disease = diseaseMapper.toEntity(diseaseRequest);
@@ -46,9 +47,10 @@ public class DiseaseService {
     }
 
     public List<DiseaseResponse> saveAll(List<DiseaseRequest> diseaseRequests) {
-        for(var diseaseRequest : diseaseRequests){
-            if(diseaseRepository.existsByName(diseaseRequest.name())){
-                throw new DiseaseConflictException("Disease already exists with name: " + diseaseRequest.name());
+        for (var diseaseRequest : diseaseRequests) {
+            if (diseaseRepository.existsByName(diseaseRequest.name())) {
+                throw new DiseaseConflictException(
+                    "Disease already exists with name: " + diseaseRequest.name());
             }
         }
 

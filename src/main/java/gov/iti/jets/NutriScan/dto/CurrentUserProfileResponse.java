@@ -8,28 +8,27 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-public record CurrentUserProfileResponse(
-        UUID id,
+public record CurrentUserProfileResponse(UUID id,
 
-        String email,
+    String email,
 
-        String username,
+    String username,
 
-        String firstName,
+    String firstName,
 
-        String lastName,
+    String lastName,
 
-        LocalDate dateOfBirth,
+    LocalDate dateOfBirth,
 
-        Gender gender,
+    Gender gender,
 
-        BigDecimal heightCm,
+    BigDecimal heightCm,
 
-        BigDecimal weightKg,
+    BigDecimal weightKg,
 
-        List<AllergyResponse> allergies,
+    List<AllergyResponse> allergies,
 
-        List<DiseaseResponse> diseases,
+    List<DiseaseResponse> diseases,
 
-        Instant updatedAt){
+    Instant updatedAt) {
 }
