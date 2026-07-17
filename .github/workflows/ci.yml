@@ -48,9 +48,7 @@ jobs:
         run: mvn clean package -DskipTests
 
   swagger-pages:
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.base_ref == 'main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build
 
@@ -63,9 +61,7 @@ jobs:
           path: docs
 
   deploy-pages:
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.base_ref == 'main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: swagger-pages
     runs-on: ubuntu-latest
 
