@@ -2,7 +2,6 @@ package gov.iti.jets.NutriScan.exception;
 
 import gov.iti.jets.NutriScan.dto.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -169,6 +168,44 @@ public class GlobalExceptionHandler {
             .build();
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(OcrModelException.class)
+    public ResponseEntity<ApiErrorResponse> handleOcrModelException(
+        Exception ex,
+        HttpServletRequest request) {
+
+        ex.printStackTrace();
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+            .error("INTERNAL_SERVER_ERROR")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+    @ExceptionHandler(IngredientParsingException.class)
+    public ResponseEntity<String> handleIngredientParsing(IngredientParsingException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ImageTooLargeException.class)
+    public ResponseEntity<ApiErrorResponse> handleImageTooLargeException(
+        ImageTooLargeException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONTENT_TOO_LARGE.value())
+            .error("IMAGE_TOO_LARGE")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(response);
     }
 
     @ExceptionHandler(Exception.class)
