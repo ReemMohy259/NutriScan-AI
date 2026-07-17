@@ -15,7 +15,7 @@ import java.util.Set;
 @Table(name = "allergies")
 public class Allergy {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "id", nullable = false)
     private Integer id;
 

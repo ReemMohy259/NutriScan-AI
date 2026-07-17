@@ -6,6 +6,8 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @Entity
@@ -25,4 +27,15 @@ public class UserAllergy {
     @JoinColumn(name = "allergy_id", nullable = false)
     private Allergy allergy;
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        UserAllergy that = (UserAllergy) o;
+        return Objects.equals(user, that.user) && Objects.equals(allergy, that.allergy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(user, allergy);
+    }
 }

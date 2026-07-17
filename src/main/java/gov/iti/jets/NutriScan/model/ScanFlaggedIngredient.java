@@ -18,7 +18,7 @@ import java.time.Instant;
 @Table(name = "scan_flagged_ingredients")
 public class ScanFlaggedIngredient {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "id", nullable = false)
     private Long id;
 
