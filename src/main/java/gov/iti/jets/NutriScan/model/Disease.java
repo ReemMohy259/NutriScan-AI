@@ -15,13 +15,13 @@ import java.util.Set;
 @Table(name = "diseases")
 public class Disease {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
     @Size(max = 150)
     @NotNull
-    @Column(name = "name", nullable = false, length = 150)
+    @Column(name = "name", nullable = false, length = 150, unique = true)
     private String name;
 
 }
