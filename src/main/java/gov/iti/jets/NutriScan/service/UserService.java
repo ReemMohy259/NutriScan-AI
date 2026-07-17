@@ -27,7 +27,37 @@ public class UserService {
 
     @Value("${keycloak.realm.name}")
     private String realmName;
+
+    private final Keycloak keycloak;
+
     private final UserRepository userRepository;
+
+    // handle that the username or email already exist
+    public void createUser(RegisterRequest request) {
+
+        UserRepresentation user = new UserRepresentation();
+
+        user.setUsername(request.username());
+        user.setEmail(request.email());
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+
+        user.setEnabled(true);
+        user.setEmailVerified(false);
+        user.setRequiredActions(Collections.emptyList());
+
+        Response response = keycloak.realm(realmName).users().create(user);
+
+        String userId = CreatedResponseUtil.getCreatedId(response);
+
+        CredentialRepresentation password = new CredentialRepresentation();
+
+        password.setType(CredentialRepresentation.PASSWORD);
+        password.setTemporary(false);
+        password.setValue(request.password());
+
+        keycloak.realm(realmName).users().get(userId).resetPassword(password);
+    }
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -53,63 +83,45 @@ public class UserService {
             user.setHeightCm(userDetails.getHeightCm());
         }
 
-    private final Keycloak keycloak;
         if (userDetails.getWeightKg() != null) {
             user.setWeightKg(userDetails.getWeightKg());
         }
 
-    // handle that the username or email already exist
-    public void createUser(RegisterRequest request) {
         if (userDetails.getUserAllergies() != null) {
             user.setUserAllergies(userDetails.getUserAllergies());
         }
 
-        UserRepresentation user = new UserRepresentation();
         if (userDetails.getUserDiseases() != null) {
             user.setUserDiseases(userDetails.getUserDiseases());
         }
 
-        user.setUsername(request.username());
-        user.setEmail(request.email());
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
         return userRepository.save(user);
     }
 
-        user.setEnabled(true);
-        user.setEmailVerified(false);
-        user.setRequiredActions(Collections.emptyList());
     public User addAllergy(UUID userId, UserAllergy allergy) {
         User user = findById(userId);
         user.addAllergy(allergy);
         return userRepository.save(user);
     }
 
-        Response response = keycloak.realm(realmName).users().create(user);
     public User addDisease(UUID userId, UserDisease disease) {
         User user = findById(userId);
         user.addDiseases(disease);
         return userRepository.save(user);
     }
 
-        String userId = CreatedResponseUtil.getCreatedId(response);
     public boolean existsById(UUID id) {
         return userRepository.existsById(id);
     }
 
-        CredentialRepresentation password = new CredentialRepresentation();
     public CurrentUserSummaryResponse getCurrentUserSummary() {
         return null;
     }
 
-        password.setType(CredentialRepresentation.PASSWORD);
-        password.setTemporary(false);
-        password.setValue(request.password());
     public CurrentUserProfileResponse getCurrentUserProfile() {
         return null;
     }
 
-        keycloak.realm(realmName).users().get(userId).resetPassword(password);
     public CurrentUserProfileResponse updateUserProfile(UpdateProfileRequest request) {
 
         // Don't forget to check ownership first
