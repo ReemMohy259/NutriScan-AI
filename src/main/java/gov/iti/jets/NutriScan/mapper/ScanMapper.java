@@ -32,44 +32,46 @@ public interface ScanMapper {
         return new FoodSafetyResponse(
             scan.getVerdict(),
             mapScanFlaggedIngredientsToFlaggedIngredients(scan.getScanFlaggedIngredients()),
-            scan.getSummary()
-        );
+            scan.getSummary());
     }
 
-    default List<FlaggedIngredient> mapScanFlaggedIngredientsToFlaggedIngredients(Set<ScanFlaggedIngredient> set) {
+    default List<FlaggedIngredient> mapScanFlaggedIngredientsToFlaggedIngredients(
+        Set<ScanFlaggedIngredient> set) {
         if (set == null) {
             return List.of();
         }
-        return set.stream()
-            .map(this::mapScanFlaggedIngredientToFlaggedIngredient)
-            .toList();
+        return set.stream().map(this::mapScanFlaggedIngredientToFlaggedIngredient).toList();
     }
 
-    default FlaggedIngredient mapScanFlaggedIngredientToFlaggedIngredient(ScanFlaggedIngredient ingredient) {
+    default FlaggedIngredient mapScanFlaggedIngredientToFlaggedIngredient(
+        ScanFlaggedIngredient ingredient) {
         if (ingredient == null) {
             return null;
         }
 
         FlaggedIngredient.FlagType flagType = null;
         if (ingredient.getType() != null) {
-            if ("CHRONIC_CONDITION".equalsIgnoreCase(ingredient.getType()) || "CONDITION".equalsIgnoreCase(ingredient.getType())) {
+            if ("CHRONIC_CONDITION".equalsIgnoreCase(ingredient.getType())
+                || "CONDITION".equalsIgnoreCase(ingredient.getType())) {
                 flagType = FlaggedIngredient.FlagType.CONDITION;
             } else if ("ALLERGY".equalsIgnoreCase(ingredient.getType())) {
                 flagType = FlaggedIngredient.FlagType.ALLERGY;
             }
         }
 
-        List<String> nameList = ingredient.getConditionName() != null ? List.of(ingredient.getConditionName()) : List.of();
+        List<String> nameList = ingredient.getConditionName() != null
+            ? List.of(ingredient.getConditionName())
+            : List.of();
 
         return new FlaggedIngredient(
             ingredient.getIngredientName(),
             ingredient.getReason(),
             flagType,
-            nameList
-        );
+            nameList);
     }
 
-    default ScanFlaggedIngredient mapFlaggedIngredientToScanFlaggedIngredient(FlaggedIngredient flaggedIngredient) {
+    default ScanFlaggedIngredient mapFlaggedIngredientToScanFlaggedIngredient(
+        FlaggedIngredient flaggedIngredient) {
         if (flaggedIngredient == null) {
             return null;
         }

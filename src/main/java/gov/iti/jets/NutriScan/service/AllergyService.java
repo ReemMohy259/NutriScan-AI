@@ -27,7 +27,8 @@ public class AllergyService {
     public AllergyResponse findByName(String name) {
         return allergyRepository.findByName(name)
             .map(allergyMapper::toResponse)
-            .orElseThrow(() -> new AllergyNotFoundException("Allergy not found with name: " + name));
+            .orElseThrow(
+                () -> new AllergyNotFoundException("Allergy not found with name: " + name));
     }
 
     public List<AllergyResponse> findAll() {

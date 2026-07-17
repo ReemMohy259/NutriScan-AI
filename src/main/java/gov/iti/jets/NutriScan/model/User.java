@@ -53,29 +53,29 @@ public class User {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public void addAllergy(UserAllergy userAllergy){
-        if(userAllergy != null){
+    public void addAllergy(UserAllergy userAllergy) {
+        if (userAllergy != null) {
             userAllergies.add(userAllergy);
             userAllergy.setUser(this);
         }
     }
 
-    public void removeAllergy(UserAllergy userAllergy){
-        if(userAllergy != null){
+    public void removeAllergy(UserAllergy userAllergy) {
+        if (userAllergy != null) {
             userAllergies.remove(userAllergy);
             userAllergy.setUser(null);
         }
     }
 
-    public void addDiseases(UserDisease userDisease){
-        if(userDisease != null){
+    public void addDiseases(UserDisease userDisease) {
+        if (userDisease != null) {
             userDiseases.add(userDisease);
             userDisease.setUser(this);
         }
     }
 
-    public void removeDiseases(UserDisease userDisease){
-        if(userDisease != null){
+    public void removeDiseases(UserDisease userDisease) {
+        if (userDisease != null) {
             userDiseases.remove(userDisease);
             userDisease.setUser(null);
         }

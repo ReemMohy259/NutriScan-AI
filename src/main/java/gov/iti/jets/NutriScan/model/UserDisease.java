@@ -29,7 +29,8 @@ public class UserDisease {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass())
+            return false;
         UserDisease that = (UserDisease) o;
         return Objects.equals(user, that.user) && Objects.equals(disease, that.disease);
     }

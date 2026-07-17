@@ -20,14 +20,15 @@ public class DiseaseService {
 
     public DiseaseResponse findById(Integer id) {
         return diseaseRepository.findById(id)
-                .map(diseaseMapper::toResponse)
-                .orElseThrow(() -> new DiseaseNotFoundException("Disease not found with id: " + id));
+            .map(diseaseMapper::toResponse)
+            .orElseThrow(() -> new DiseaseNotFoundException("Disease not found with id: " + id));
     }
 
     public DiseaseResponse findByName(String name) {
         return diseaseRepository.findByName(name)
-                .map(diseaseMapper::toResponse)
-                .orElseThrow(() -> new DiseaseNotFoundException("Disease not found with name: " + name));
+            .map(diseaseMapper::toResponse)
+            .orElseThrow(
+                () -> new DiseaseNotFoundException("Disease not found with name: " + name));
     }
 
     public List<DiseaseResponse> findAll() {

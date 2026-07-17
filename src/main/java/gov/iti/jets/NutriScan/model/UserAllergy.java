@@ -29,7 +29,8 @@ public class UserAllergy {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass())
+            return false;
         UserAllergy that = (UserAllergy) o;
         return Objects.equals(user, that.user) && Objects.equals(allergy, that.allergy);
     }

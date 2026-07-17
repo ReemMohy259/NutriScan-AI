@@ -64,15 +64,15 @@ public class Scan {
     @JoinColumn(name = "scan_id")
     private Set<ScanFlaggedIngredient> scanFlaggedIngredients = new LinkedHashSet<>();
 
-    public void addFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient){
-        if(scanFlaggedIngredient != null){
+    public void addFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient) {
+        if (scanFlaggedIngredient != null) {
             scanFlaggedIngredients.add(scanFlaggedIngredient);
             scanFlaggedIngredient.setScan(this);
         }
     }
 
-    public void removeFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient){
-        if(scanFlaggedIngredient != null){
+    public void removeFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient) {
+        if (scanFlaggedIngredient != null) {
             scanFlaggedIngredients.remove(scanFlaggedIngredient);
             scanFlaggedIngredient.setScan(null);
         }
