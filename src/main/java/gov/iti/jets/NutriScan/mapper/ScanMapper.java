@@ -53,7 +53,7 @@ public interface ScanMapper {
         if (ingredient.getType() != null) {
             if ("CHRONIC_CONDITION".equalsIgnoreCase(ingredient.getType())
                 || "CONDITION".equalsIgnoreCase(ingredient.getType())) {
-                flagType = FlaggedIngredient.FlagType.CONDITION;
+                flagType = FlaggedIngredient.FlagType.CHRONIC_CONDITION;
             } else if ("ALLERGY".equalsIgnoreCase(ingredient.getType())) {
                 flagType = FlaggedIngredient.FlagType.ALLERGY;
             }
@@ -80,7 +80,7 @@ public interface ScanMapper {
         entity.setReason(flaggedIngredient.reason());
 
         if (flaggedIngredient.type() != null) {
-            if (flaggedIngredient.type() == FlaggedIngredient.FlagType.CONDITION) {
+            if (flaggedIngredient.type() == FlaggedIngredient.FlagType.CHRONIC_CONDITION) {
                 entity.setType("CHRONIC_CONDITION");
             } else {
                 entity.setType(flaggedIngredient.type().name());

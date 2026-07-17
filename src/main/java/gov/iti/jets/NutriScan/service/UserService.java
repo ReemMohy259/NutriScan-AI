@@ -83,6 +83,8 @@ public class UserService {
     }
 
     public CurrentUserProfileResponse updateUserProfile(UpdateProfileRequest request) {
+
+        // Don't forget to check ownership first
         return null;
     }
 }
