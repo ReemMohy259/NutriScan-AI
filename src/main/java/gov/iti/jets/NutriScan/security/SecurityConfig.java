@@ -1,11 +1,10 @@
 package gov.iti.jets.NutriScan.security;
 
-import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -16,6 +15,15 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Value("${keycloak.admin.client-id}")
+    private String keycloakAdminClientId;
+
+    @Value("${keycloak.admin.username}")
+    private String keycloakAdminUsername;
+
+    @Value("${keycloak.admin.password}")
+    private String keycloakAdminPassword;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -48,9 +56,9 @@ public class SecurityConfig {
         return KeycloakBuilder.builder()
             .serverUrl("http://localhost:8081")
             .realm("master")
-            .clientId("admin-cli")
-            .username("admin")
-            .password("admin")
+            .clientId(keycloakAdminClientId)
+            .username(keycloakAdminUsername)
+            .password(keycloakAdminPassword)
             .build();
     }
 }
