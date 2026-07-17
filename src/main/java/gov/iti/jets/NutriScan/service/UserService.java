@@ -7,6 +7,7 @@ import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -14,6 +15,9 @@ import java.util.Collections;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    @Value("${keycloak.realm.name}")
+    private String realmName;
 
     private final Keycloak keycloak;
 
@@ -31,7 +35,7 @@ public class UserService {
         user.setEmailVerified(false);
         user.setRequiredActions(Collections.emptyList());
 
-        Response response = keycloak.realm("nutriscan").users().create(user);
+        Response response = keycloak.realm(realmName).users().create(user);
 
         String userId = CreatedResponseUtil.getCreatedId(response);
 
@@ -41,6 +45,6 @@ public class UserService {
         password.setTemporary(false);
         password.setValue(request.password());
 
-        keycloak.realm("nutriscan").users().get(userId).resetPassword(password);
+        keycloak.realm(realmName).users().get(userId).resetPassword(password);
     }
 }
