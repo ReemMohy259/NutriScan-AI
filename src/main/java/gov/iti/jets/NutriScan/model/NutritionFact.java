@@ -20,6 +20,7 @@ import java.util.UUID;
 public class NutritionFact {
     @Id
     @Column(name = "scan_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @MapsId

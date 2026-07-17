@@ -21,7 +21,7 @@ public class Disease {
 
     @Size(max = 150)
     @NotNull
-    @Column(name = "name", nullable = false, length = 150)
+    @Column(name = "name", nullable = false, length = 150, unique = true)
     private String name;
 
 }

@@ -6,6 +6,8 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @Entity
@@ -25,4 +27,16 @@ public class UserDisease {
     @JoinColumn(name = "disease_id", nullable = false)
     private Disease disease;
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass())
+            return false;
+        UserDisease that = (UserDisease) o;
+        return Objects.equals(user, that.user) && Objects.equals(disease, that.disease);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(user, disease);
+    }
 }
