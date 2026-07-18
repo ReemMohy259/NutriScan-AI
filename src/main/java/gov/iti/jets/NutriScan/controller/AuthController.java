@@ -23,7 +23,8 @@ public class AuthController {
         return authService.createUser(request);
     }
     @PostMapping("/auth/resend-verification")
-    public ResponseEntity<Void> resendVerification(@RequestBody @Valid ResendVerificationRequest request) {
+    public ResponseEntity<Void> resendVerification(
+        @RequestBody @Valid ResendVerificationRequest request) {
 
         authService.resendEmail(request);
 

@@ -15,7 +15,6 @@ import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -86,8 +85,7 @@ public class AuthService {
     public void resendEmail(ResendVerificationRequest request) {
         UsersResource users = keycloak.realm(realmName).users();
 
-        List<UserRepresentation> foundUsers =
-                users.searchByEmail(request.email(), true);
+        List<UserRepresentation> foundUsers = users.searchByEmail(request.email(), true);
 
         if (foundUsers.isEmpty()) {
             throw new UserNotFoundException("User not found");
