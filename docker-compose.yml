@@ -1,21 +1,23 @@
 services:
 
-#  nutriscan:
-#      container_name: nutriscan
-#      build:
-#        context: .
-#        dockerfile: Dockerfile
-#      ports:
-#        - "8080:8080"
-#      environment:
-#        DB_URL: jdbc:postgresql://postgres-app:5432/${APP_DB_NAME:-nutri_scan}
-#        DB_USERNAME: ${APP_DB_USER:-admin}
-#        DB_PASSWORD: ${APP_DB_PASSWORD:-admin}
-#      depends_on:
-#        postgres-app:
-#          condition: service_healthy
-#        keycloak:
-#          condition: service_started
+  nutriscan:
+      container_name: nutriscan
+      build:
+        context: .
+        dockerfile: Dockerfile
+      env_file:
+        - .env
+      ports:
+        - "8080:8080"
+      environment:
+        DB_URL: jdbc:postgresql://postgres-app:5432/${APP_DB_NAME:-nutri_scan}
+        DB_USERNAME: ${APP_DB_USER:-admin}
+        DB_PASSWORD: ${APP_DB_PASSWORD:-admin}
+      depends_on:
+        postgres-app:
+          condition: service_healthy
+        keycloak:
+          condition: service_healthy
 
   postgres-app:
     container_name: postgres-app
@@ -59,19 +61,21 @@ services:
       KC_DB_PASSWORD: ${KC_DB_PASSWORD:-1234}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
     depends_on:
       postgres-keycloak:
         condition: service_healthy
     volumes:
       - ./keycloak/themes/nutriscan:/opt/keycloak/themes/nutriscan
-
     ports:
       - "8081:8080"
       - "9000:9000"
-#    healthcheck:
-#      test: [ "CMD", "curl", "-f", "http://localhost:9000/health/ready" ]
-#      interval: 10s
-#      retries: 10
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000; echo -e \"GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; cat <&3 | grep -q \"\\\"status\\\": \\\"UP\\\"\"'" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
 
 volumes:
   kc-pgdata:

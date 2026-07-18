@@ -27,6 +27,9 @@ public class SecurityConfig {
     @Value("${keycloak.admin.password}")
     private String keycloakAdminPassword;
 
+    @Value("${keycloak.server.url}")
+    private String keycloakServerUrl;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(withDefaults())
@@ -60,7 +63,7 @@ public class SecurityConfig {
     public Keycloak keycloak() {
 
         return KeycloakBuilder.builder()
-            .serverUrl("http://localhost:8081")
+            .serverUrl(keycloakServerUrl)
             .realm("master")
             .clientId(keycloakAdminClientId)
             .username(keycloakAdminUsername)
