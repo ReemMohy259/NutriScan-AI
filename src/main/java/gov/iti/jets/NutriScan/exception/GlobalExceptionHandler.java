@@ -120,54 +120,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ApiErrorResponse> handleEmailExists(
-        EmailAlreadyExistsException ex,
-        HttpServletRequest request) {
-
-        ApiErrorResponse response = ApiErrorResponse.builder()
-            .timestamp(Instant.now())
-            .status(HttpStatus.CONFLICT.value())
-            .error("CONFLICT")
-            .message(ex.getMessage())
-            .path(request.getRequestURL().toString())
-            .build();
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-    }
-
-    // @ExceptionHandler(AccessDeniedException.class)
-    // public ResponseEntity<ApiErrorResponse> handleAccessDenied(
-    // AccessDeniedException ex,
-    // HttpServletRequest request) {
-    //
-    // ApiErrorResponse response = ApiErrorResponse.builder()
-    // .timestamp(Instant.now())
-    // .status(HttpStatus.FORBIDDEN.value())
-    // .error("FORBIDDEN")
-    // .message(ex.getMessage())
-    // .path(request.getRequestURL().toString())
-    // .build();
-    //
-    // return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-    // }
-
-    // @ExceptionHandler(BadCredentialsException.class)
-    // public ResponseEntity<ApiErrorResponse> handleBadCredentials(
-    // BadCredentialsException ex,
-    // HttpServletRequest request) {
-    //
-    // ApiErrorResponse response = ApiErrorResponse.builder()
-    // .timestamp(Instant.now())
-    // .status(HttpStatus.UNAUTHORIZED.value())
-    // .error("UNAUTHORIZED")
-    // .message("Invalid email or password")
-    // .path(request.getRequestURL().toString())
-    // .build();
-    //
-    // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-    // }
-
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(
         IllegalArgumentException ex,

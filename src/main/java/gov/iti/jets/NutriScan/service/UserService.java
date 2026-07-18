@@ -1,63 +1,30 @@
 package gov.iti.jets.NutriScan.service;
 
-import gov.iti.jets.NutriScan.dto.CurrentUserProfileResponse;
-import gov.iti.jets.NutriScan.dto.CurrentUserSummaryResponse;
-import gov.iti.jets.NutriScan.dto.UpdateProfileRequest;
+import gov.iti.jets.NutriScan.dto.*;
+import gov.iti.jets.NutriScan.exception.AllergyNotFoundException;
+import gov.iti.jets.NutriScan.exception.DiseaseNotFoundException;
 import gov.iti.jets.NutriScan.exception.UserNotFoundException;
-import gov.iti.jets.NutriScan.model.User;
-import gov.iti.jets.NutriScan.model.UserAllergy;
-import gov.iti.jets.NutriScan.model.UserDisease;
+import gov.iti.jets.NutriScan.model.*;
+import gov.iti.jets.NutriScan.repository.AllergyRepository;
+import gov.iti.jets.NutriScan.repository.DiseaseRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
-import gov.iti.jets.NutriScan.dto.RegisterRequest;
-import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
-import org.keycloak.admin.client.CreatedResponseUtil;
-import org.keycloak.admin.client.Keycloak;
-import org.keycloak.representations.idm.CredentialRepresentation;
-import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
-import java.util.Collections;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
-    @Value("${keycloak.realm.name}")
-    private String realmName;
-
-    private final Keycloak keycloak;
-
     private final UserRepository userRepository;
 
-    // handle that the username or email already exist
-    public void createUser(RegisterRequest request) {
+    private final AllergyRepository allergyRepository;
 
-        UserRepresentation user = new UserRepresentation();
-
-        user.setUsername(request.username());
-        user.setEmail(request.email());
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
-
-        user.setEnabled(true);
-        user.setEmailVerified(false);
-        user.setRequiredActions(Collections.emptyList());
-
-        Response response = keycloak.realm(realmName).users().create(user);
-
-        String userId = CreatedResponseUtil.getCreatedId(response);
-
-        CredentialRepresentation password = new CredentialRepresentation();
-
-        password.setType(CredentialRepresentation.PASSWORD);
-        password.setTemporary(false);
-        password.setValue(request.password());
-
-        keycloak.realm(realmName).users().get(userId).resetPassword(password);
-    }
+    private final DiseaseRepository diseaseRepository;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -126,5 +93,54 @@ public class UserService {
 
         // Don't forget to check ownership first
         return null;
+    }
+
+    public RegisterResponse register(UUID userId, RegisterRequest request) {
+
+        User user = User.builder()
+            .id(userId)
+            .gender(request.gender())
+            .dateOfBirth(request.dateOfBirth())
+            .heightCm(request.heightCm())
+            .weightKg(request.weightKg())
+            .build();
+
+        user.setUserAllergies(buildUserAllergies(userId, user, request.allergies()));
+        user.setUserDiseases(buildUserDiseases(userId, user, request.diseases()));
+
+        userRepository.save(user);
+
+        return new RegisterResponse("Registration successful", true);
+    }
+
+    // Helper Methods
+    private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
+        return allergyIds.stream().map(id -> {
+            Allergy allergy = allergyRepository.findById(id)
+                .orElseThrow(
+                    () -> new AllergyNotFoundException("Allergy not found with ID: " + id));
+
+            UserAllergy ua = new UserAllergy();
+            ua.setId(new UserAllergyId(userId, id));
+            ua.setUser(user);
+            ua.setAllergy(allergy);
+
+            return ua;
+        }).collect(Collectors.toSet());
+    }
+
+    private Set<UserDisease> buildUserDiseases(UUID userId, User user, List<Integer> diseaseIds) {
+        return diseaseIds.stream().map(id -> {
+            Disease disease = diseaseRepository.findById(id)
+                .orElseThrow(
+                    () -> new DiseaseNotFoundException("Disease not found with ID: " + id));
+
+            UserDisease ud = new UserDisease();
+            ud.setId(new UserDiseaseId(userId, id));
+            ud.setUser(user);
+            ud.setDisease(disease);
+
+            return ud;
+        }).collect(Collectors.toSet());
     }
 }

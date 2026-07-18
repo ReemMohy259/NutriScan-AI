@@ -1,10 +1,12 @@
-package gov.iti.jets.NutriScan.security;
+package gov.iti.jets.NutriScan.config;
 
+import gov.iti.jets.NutriScan.security.KeycloakJwtAuthenticationConverter;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -40,6 +42,10 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/swagger-ui.html")
                     .permitAll()
+
+                    .requestMatchers(HttpMethod.POST, "/api/v1/allergies", "/api/v1/diseases")
+                    .permitAll()
+
                     .anyRequest()
                     .authenticated())
             .oauth2ResourceServer(
