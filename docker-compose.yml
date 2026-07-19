@@ -70,8 +70,6 @@ services:
     depends_on:
       postgres-keycloak:
         condition: service_healthy
-    volumes:
-      - ./keycloak/themes/nutriscan:/opt/keycloak/themes/nutriscan
     ports:
       - "8081:8080"
       - "9000:9000"
