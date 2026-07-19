@@ -120,53 +120,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ApiErrorResponse> handleEmailExists(
-        EmailAlreadyExistsException ex,
+    @ExceptionHandler(UserAlreadyVerifiedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUserAlreadyVerified(
+        UserAlreadyVerifiedException ex,
         HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
             .timestamp(Instant.now())
             .status(HttpStatus.CONFLICT.value())
-            .error("CONFLICT")
+            .error("USER_ALREADY_VERIFIED")
             .message(ex.getMessage())
             .path(request.getRequestURL().toString())
             .build();
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        return ResponseEntity.badRequest().body(response);
     }
-
-    // @ExceptionHandler(AccessDeniedException.class)
-    // public ResponseEntity<ApiErrorResponse> handleAccessDenied(
-    // AccessDeniedException ex,
-    // HttpServletRequest request) {
-    //
-    // ApiErrorResponse response = ApiErrorResponse.builder()
-    // .timestamp(Instant.now())
-    // .status(HttpStatus.FORBIDDEN.value())
-    // .error("FORBIDDEN")
-    // .message(ex.getMessage())
-    // .path(request.getRequestURL().toString())
-    // .build();
-    //
-    // return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-    // }
-
-    // @ExceptionHandler(BadCredentialsException.class)
-    // public ResponseEntity<ApiErrorResponse> handleBadCredentials(
-    // BadCredentialsException ex,
-    // HttpServletRequest request) {
-    //
-    // ApiErrorResponse response = ApiErrorResponse.builder()
-    // .timestamp(Instant.now())
-    // .status(HttpStatus.UNAUTHORIZED.value())
-    // .error("UNAUTHORIZED")
-    // .message("Invalid email or password")
-    // .path(request.getRequestURL().toString())
-    // .build();
-    //
-    // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-    // }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(
@@ -195,7 +163,7 @@ public class GlobalExceptionHandler {
             .timestamp(Instant.now())
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
             .error("INTERNAL_SERVER_ERROR")
-            .message("An unexpected error occurred.")
+            .message(ex.getMessage())
             .path(request.getRequestURL().toString())
             .build();
 

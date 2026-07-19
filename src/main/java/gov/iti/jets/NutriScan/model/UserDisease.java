@@ -1,8 +1,7 @@
 package gov.iti.jets.NutriScan.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -12,6 +11,9 @@ import java.util.Objects;
 @Setter
 @Entity
 @Table(name = "user_diseases")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserDisease {
     @EmbeddedId
     private UserDiseaseId id;

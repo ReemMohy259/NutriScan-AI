@@ -4,8 +4,7 @@ import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
@@ -20,6 +19,9 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "scans")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Scan {
     @Id
     @Column(name = "id", nullable = false)
@@ -41,7 +43,6 @@ public class Scan {
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
-    @Size(max = 20)
     @Enumerated(EnumType.STRING)
     @Column(name = "verdict", length = 20)
     private Verdict verdict;
