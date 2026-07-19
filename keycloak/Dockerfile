@@ -12,6 +12,7 @@ RUN /opt/keycloak/bin/kc.sh build
 FROM quay.io/keycloak/keycloak:26.6
 COPY --from=builder /opt/keycloak/ /opt/keycloak/
 COPY keycloak/realm-config/import/ /opt/keycloak/data/import/
+COPY keycloak/themes/nutriscan/ /opt/keycloak/themes/nutriscan/
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 CMD ["start-dev", "--import-realm"]
