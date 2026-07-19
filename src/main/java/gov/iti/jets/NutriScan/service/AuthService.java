@@ -10,12 +10,14 @@ import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpStatus;
+import org.hibernate.sql.results.graph.embeddable.EmbeddableInitializer;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,8 +35,11 @@ public class AuthService {
 
     private final UserService userService;
 
+    private final EmailService emailService;
+
     public RegisterResponse createUser(RegisterRequest request) {
 
+        UsersResource usersResource = keycloak.realm(realmName).users();
         // Create the user from keycloak
         UserRepresentation user = new UserRepresentation();
 
@@ -60,15 +65,14 @@ public class AuthService {
             password.setTemporary(false);
             password.setValue(request.password());
 
-            keycloak.realm(realmName).users().get(userId).resetPassword(password);
+            usersResource.get(userId).resetPassword(password);
 
             // Save the new user in the database
-            RegisterResponse registerResponse = userService
-                .register(UUID.fromString(userId), request);
+            RegisterResponse registerResponse = userService.register(UUID.fromString(userId), request);
 
             // Send verification email
             try {
-                keycloak.realm(realmName).users().get(userId).sendVerifyEmail(3600);
+                emailService.sendVerificationEmail(usersResource, userId);
             } catch (Exception ex) {
                 log.error("Failed to send verification email for user {}", userId);
             }
@@ -77,7 +81,7 @@ public class AuthService {
 
         } catch (Exception ex) {
             // Roll back Keycloak user
-            keycloak.realm(realmName).users().delete(userId);
+            usersResource.delete(userId);
 
             throw ex;
         }
@@ -98,6 +102,6 @@ public class AuthService {
             throw new UserAlreadyVerifiedException("User already verified");
         }
 
-        users.get(user.getId()).sendVerifyEmail(3600);
+        emailService.sendVerificationEmail(users, user.getId());
     }
 }
