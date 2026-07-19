@@ -1,5 +1,6 @@
 package gov.iti.jets.NutriScan.controller;
 
+import gov.iti.jets.NutriScan.dto.ForgotPasswordRequest;
 import gov.iti.jets.NutriScan.dto.RegisterRequest;
 import gov.iti.jets.NutriScan.dto.RegisterResponse;
 import gov.iti.jets.NutriScan.dto.ResendVerificationRequest;
@@ -30,5 +31,14 @@ public class AuthController {
         authService.resendEmail(request);
 
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(
+            @RequestBody @Valid ForgotPasswordRequest request) {
+
+        var response = authService.sendForgotPasswordEmail(request);
+
+        return ResponseEntity.ok().body(response);
     }
 }

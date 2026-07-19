@@ -1,8 +1,6 @@
 package gov.iti.jets.NutriScan.service;
 
-import gov.iti.jets.NutriScan.dto.RegisterRequest;
-import gov.iti.jets.NutriScan.dto.RegisterResponse;
-import gov.iti.jets.NutriScan.dto.ResendVerificationRequest;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.exception.UserAlreadyVerifiedException;
 import gov.iti.jets.NutriScan.exception.UserConflictException;
 import gov.iti.jets.NutriScan.exception.UserNotFoundException;
@@ -104,5 +102,21 @@ public class AuthService {
         }
 
         emailService.sendVerificationEmail(users, user.getId());
+    }
+
+    public ForgotPasswordResponse sendForgotPasswordEmail(ForgotPasswordRequest request) {
+        UsersResource users = keycloak.realm(realmName).users();
+
+        List<UserRepresentation> usersFound = users.searchByEmail(request.email(), true);
+
+        if (usersFound.isEmpty()) {
+            throw new UserNotFoundException("User not found");
+        }
+
+        UserRepresentation user = usersFound.get(0);
+
+        emailService.sendForgotPasswordEmail(users, user.getId());
+
+        return new ForgotPasswordResponse("Password reset email sent");
     }
 }
