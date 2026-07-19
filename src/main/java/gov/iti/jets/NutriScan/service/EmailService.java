@@ -19,8 +19,6 @@ public class EmailService {
 
     @Async
     public void sendForgotPasswordEmail(UsersResource usersResource, String userId) {
-        usersResource.get(userId).executeActionsEmail(
-                List.of("UPDATE_PASSWORD")
-        );
+        usersResource.get(userId).executeActionsEmail(List.of("UPDATE_PASSWORD"));
     }
 }

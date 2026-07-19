@@ -34,8 +34,7 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(
-            @RequestBody @Valid ForgotPasswordRequest request) {
+    public ResponseEntity<?> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
 
         var response = authService.sendForgotPasswordEmail(request);
 

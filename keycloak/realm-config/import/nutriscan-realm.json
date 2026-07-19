@@ -33,7 +33,7 @@
   "verifyEmail": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "permanentLockout": false,
