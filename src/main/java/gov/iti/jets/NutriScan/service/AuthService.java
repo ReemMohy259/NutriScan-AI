@@ -68,7 +68,8 @@ public class AuthService {
             usersResource.get(userId).resetPassword(password);
 
             // Save the new user in the database
-            RegisterResponse registerResponse = userService.register(UUID.fromString(userId), request);
+            RegisterResponse registerResponse = userService
+                .register(UUID.fromString(userId), request);
 
             // Send verification email
             try {

@@ -122,16 +122,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserAlreadyVerifiedException.class)
     public ResponseEntity<ApiErrorResponse> handleUserAlreadyVerified(
-            UserAlreadyVerifiedException ex,
-            HttpServletRequest request) {
+        UserAlreadyVerifiedException ex,
+        HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error("USER_ALREADY_VERIFIED")
-                .message(ex.getMessage())
-                .path(request.getRequestURL().toString())
-                .build();
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONFLICT.value())
+            .error("USER_ALREADY_VERIFIED")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
 
         return ResponseEntity.badRequest().body(response);
     }
