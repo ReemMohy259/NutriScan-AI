@@ -13,7 +13,7 @@ services:
         DB_URL: jdbc:postgresql://postgres-app:5432/${APP_DB_NAME:-nutri_scan}
         DB_USERNAME: ${APP_DB_USER:-admin}
         DB_PASSWORD: ${APP_DB_PASSWORD:-admin}
-        SPRING_PROFILES_ACTIVE: ${SPRING_ACTIVE_PROFILES:-production}
+        SPRING_PROFILES_ACTIVE: ${SPRING_ACTIVE_PROFILES:-docker}
       depends_on:
         postgres-app:
           condition: service_healthy
