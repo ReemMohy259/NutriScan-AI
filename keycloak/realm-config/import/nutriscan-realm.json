@@ -30,7 +30,7 @@
   "registrationAllowed": false,
   "registrationEmailAsUsername": false,
   "rememberMe": false,
-  "verifyEmail": false,
+  "verifyEmail": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": false,
@@ -67,22 +67,6 @@
         "attributes": {}
       },
       {
-        "id": "cfde5f0f-9d0a-4ec3-bd5c-38e671f25bb4",
-        "name": "USER",
-        "description": "",
-        "composite": true,
-        "composites": {
-          "client": {
-            "broker": [
-              "read-token"
-            ]
-          }
-        },
-        "clientRole": false,
-        "containerId": "4ea628e1-d2a5-4f69-8be4-6c1408123ee1",
-        "attributes": {}
-      },
-      {
         "id": "1a9b82dc-221b-4d17-bb11-2ad2434edc2c",
         "name": "default-roles-nutriscan",
         "description": "${role_default-roles}",
@@ -96,6 +80,22 @@
             "account": [
               "view-profile",
               "manage-account"
+            ]
+          }
+        },
+        "clientRole": false,
+        "containerId": "4ea628e1-d2a5-4f69-8be4-6c1408123ee1",
+        "attributes": {}
+      },
+      {
+        "id": "04640479-1f0c-4ccc-b5ce-1dee9cb6828d",
+        "name": "USER",
+        "description": "",
+        "composite": true,
+        "composites": {
+          "client": {
+            "broker": [
+              "read-token"
             ]
           }
         },
@@ -332,6 +332,7 @@
         }
       ],
       "mobile-api": [],
+      "spring-client": [],
       "account": [
         {
           "id": "4ceb6c22-a41a-4310-a7ce-1ecda1770d39",
@@ -688,7 +689,7 @@
       ]
     },
     {
-      "id": "e6a1d91e-8ede-406a-a9a7-fedf3b1bf889",
+      "id": "1a6586af-fb8f-4a9f-81a9-395705ada8b1",
       "clientId": "mobile-api",
       "name": "mobile-api",
       "description": "",
@@ -843,6 +844,63 @@
           }
         }
       ],
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "id": "9978ecc3-910a-4b4b-bcd2-3bc73a7568a8",
+      "clientId": "spring-client",
+      "name": "",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        ""
+      ],
+      "webOrigins": [
+        ""
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
       "defaultClientScopes": [
         "web-origins",
         "acr",
@@ -1573,7 +1631,30 @@
     "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
     "strictTransportSecurity": "max-age=31536000; includeSubDomains"
   },
-  "smtpServer": {},
+  "smtpServer": {
+    "allowutf8": "",
+    "debug": "false",
+    "replyToDisplayName": "",
+    "starttls": "true",
+    "auth": "true",
+    "writeTimeout": "10000",
+    "envelopeFrom": "",
+    "ssl": "false",
+    "timeout": "10000",
+    "password": "${KEYCLOCK_GMAIL_APP_PASSWORD}",
+    "port": "587",
+    "host": "smtp.gmail.com",
+    "replyTo": "",
+    "from": "nutriscanfit@gmail.com",
+    "fromDisplayName": "nutriscan",
+    "authType": "basic",
+    "connectionTimeout": "10000",
+    "user": "nutriscanfit@gmail.com"
+  },
+  "loginTheme": "nutriscan",
+  "accountTheme": "",
+  "adminTheme": "",
+  "emailTheme": "nutriscan",
   "eventsEnabled": false,
   "eventsListeners": [
     "jboss-logging"
@@ -1633,14 +1714,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "oidc-usermodel-attribute-mapper",
-            "saml-user-property-mapper",
-            "oidc-sha256-pairwise-sub-mapper",
+            "oidc-full-name-mapper",
             "oidc-address-mapper",
-            "saml-user-attribute-mapper",
             "oidc-usermodel-property-mapper",
+            "oidc-usermodel-attribute-mapper",
+            "saml-user-attribute-mapper",
+            "oidc-sha256-pairwise-sub-mapper",
             "saml-role-list-mapper",
-            "oidc-full-name-mapper"
+            "saml-user-property-mapper"
           ]
         }
       },
@@ -1688,13 +1769,13 @@
         "config": {
           "allowed-protocol-mapper-types": [
             "saml-user-attribute-mapper",
-            "oidc-full-name-mapper",
+            "saml-role-list-mapper",
             "oidc-usermodel-property-mapper",
             "oidc-usermodel-attribute-mapper",
+            "oidc-sha256-pairwise-sub-mapper",
+            "oidc-full-name-mapper",
             "saml-user-property-mapper",
-            "saml-role-list-mapper",
-            "oidc-address-mapper",
-            "oidc-sha256-pairwise-sub-mapper"
+            "oidc-address-mapper"
           ]
         }
       },
@@ -2596,14 +2677,20 @@
     "clientOfflineSessionMaxLifespan": "0",
     "oauth2DevicePollingInterval": "5",
     "clientSessionIdleTimeout": "0",
+    "actionTokenGeneratedByUserLifespan.idp-verify-account-via-email": "",
+    "actionTokenGeneratedByUserLifespan.verify-email": "3600",
     "clientOfflineSessionIdleTimeout": "0",
+    "actionTokenGeneratedByUserLifespan.execute-actions": "",
     "cibaInterval": "5",
     "realmReusableOtpCode": "false",
     "cibaExpiresIn": "120",
     "oauth2DeviceCodeLifespan": "600",
     "parRequestUriLifespan": "60",
     "clientSessionMaxLifespan": "0",
-    "scimApiEnabled": "false"
+    "scimApiEnabled": "false",
+    "shortVerificationUri": "",
+    "actionTokenGeneratedByUserLifespan.reset-credentials": "",
+    "darkMode": "true"
   },
   "keycloakVersion": "26.6.4",
   "userManagedAccessAllowed": false,

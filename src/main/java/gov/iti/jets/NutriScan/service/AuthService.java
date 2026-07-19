@@ -3,6 +3,7 @@ package gov.iti.jets.NutriScan.service;
 import gov.iti.jets.NutriScan.dto.RegisterRequest;
 import gov.iti.jets.NutriScan.dto.RegisterResponse;
 import gov.iti.jets.NutriScan.dto.ResendVerificationRequest;
+import gov.iti.jets.NutriScan.exception.UserAlreadyVerifiedException;
 import gov.iti.jets.NutriScan.exception.UserConflictException;
 import gov.iti.jets.NutriScan.exception.UserNotFoundException;
 import jakarta.ws.rs.core.Response;
@@ -69,7 +70,7 @@ public class AuthService {
             try {
                 keycloak.realm(realmName).users().get(userId).sendVerifyEmail(3600);
             } catch (Exception ex) {
-                log.error("Failed to send verification email for user {}", userId, ex);
+                log.error("Failed to send verification email for user {}", userId);
             }
 
             return registerResponse;
@@ -93,8 +94,8 @@ public class AuthService {
 
         UserRepresentation user = foundUsers.get(0);
 
-        if (Boolean.TRUE.equals(user.isEmailVerified())) {
-            throw new IllegalStateException("User already verified");
+        if (user.isEmailVerified()) {
+            throw new UserAlreadyVerifiedException("User already verified");
         }
 
         users.get(user.getId()).sendVerifyEmail(3600);

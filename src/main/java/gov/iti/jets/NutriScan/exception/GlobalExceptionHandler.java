@@ -120,6 +120,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
+    @ExceptionHandler(UserAlreadyVerifiedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUserAlreadyVerified(
+            UserAlreadyVerifiedException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("USER_ALREADY_VERIFIED")
+                .message(ex.getMessage())
+                .path(request.getRequestURL().toString())
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(
         IllegalArgumentException ex,
@@ -147,7 +163,7 @@ public class GlobalExceptionHandler {
             .timestamp(Instant.now())
             .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
             .error("INTERNAL_SERVER_ERROR")
-            .message("An unexpected error occurred.")
+            .message(ex.getMessage())
             .path(request.getRequestURL().toString())
             .build();
 

@@ -22,7 +22,8 @@ public class AuthController {
     public RegisterResponse register(@RequestBody @Valid RegisterRequest request) {
         return authService.createUser(request);
     }
-    @PostMapping("/auth/resend-verification")
+
+    @PostMapping("/resend-verification")
     public ResponseEntity<Void> resendVerification(
         @RequestBody @Valid ResendVerificationRequest request) {
 
