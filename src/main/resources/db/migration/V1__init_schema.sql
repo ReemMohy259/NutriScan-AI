@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS nutri_scan;
-USE nutri_scan;
-
 CREATE TABLE users
 (
     id UUID PRIMARY KEY,

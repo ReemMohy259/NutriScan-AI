@@ -3,9 +3,7 @@ package gov.iti.jets.NutriScan.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.NotNull;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -14,6 +12,9 @@ import java.util.UUID;
 @Setter
 @EqualsAndHashCode
 @Embeddable
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserDiseaseId implements Serializable {
     private static final long serialVersionUID = -1425412187205125420L;
     @NotNull
