@@ -13,7 +13,7 @@ services:
         DB_URL: jdbc:postgresql://postgres-app:5432/${APP_DB_NAME:-nutri_scan}
         DB_USERNAME: ${APP_DB_USER:-admin}
         DB_PASSWORD: ${APP_DB_PASSWORD:-admin}
-        SPRING_PROFILES_ACTIVE: ${SPRING_ACTIVE_PROFILES:-production}
+        SPRING_PROFILES_ACTIVE: ${SPRING_ACTIVE_PROFILES:-docker}
       depends_on:
         postgres-app:
           condition: service_healthy
@@ -69,11 +69,12 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME: http://localhost:8081
       KC_HOSTNAME_STRICT: "false"
+      KC_SPI_EMAIL_SENDER_PROVIDER: resend-http
+      KC_SPI_EMAIL_SENDER_RESEND_HTTP_API_KEY: ${RESEND_API_KEY}
+      KC_SPI_EMAIL_SENDER_RESEND_HTTP_API_URL: https://api.resend.com/emails
     depends_on:
       postgres-keycloak:
         condition: service_healthy
-    volumes:
-      - ./keycloak/themes/nutriscan:/opt/keycloak/themes/nutriscan
     ports:
       - "8081:8080"
       - "9000:9000"

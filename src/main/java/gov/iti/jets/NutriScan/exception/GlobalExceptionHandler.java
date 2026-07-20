@@ -133,7 +133,7 @@ public class GlobalExceptionHandler {
             .path(request.getRequestURL().toString())
             .build();
 
-        return ResponseEntity.badRequest().body(response);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
