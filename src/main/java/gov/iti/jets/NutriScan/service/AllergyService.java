@@ -65,6 +65,7 @@ public class AllergyService {
         List<Allergy> allergies = allergyMapper.toEntityList(allergyRequests);
         return allergyMapper.toResponseList(allergyRepository.saveAll(allergies));
     }
+
     @CacheEvict(value = "allergies", allEntries = true)
     public void delete(Integer id) {
         allergyRepository.deleteById(id);
