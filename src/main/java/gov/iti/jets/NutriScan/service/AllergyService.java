@@ -10,9 +10,13 @@ import gov.iti.jets.NutriScan.repository.AllergyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,25 +53,39 @@ public class AllergyService {
         }
 
         Allergy allergy = allergyMapper.toEntity(allergyRequest);
-        return allergyMapper.toResponse(allergyRepository.save(allergy));
+        try {
+            return allergyMapper.toResponse(allergyRepository.save(allergy));
+        } catch (DataIntegrityViolationException e) {
+            throw new AllergyConflictException(
+                "Allergy already exists with name: " + allergyRequest.name());
+        }
     }
 
     @CacheEvict(value = "allergies", allEntries = true)
     public List<AllergyResponse> saveAll(List<AllergyRequest> allergyRequests) {
 
-        for (var allergyRequest : allergyRequests) {
-            if (allergyRepository.existsByName(allergyRequest.name())) {
-                throw new AllergyConflictException(
-                    "Allergy already exists with name: " + allergyRequest.name());
-            }
+        Set<String> names = allergyRequests.stream()
+            .map(AllergyRequest::name)
+            .collect(Collectors.toSet());
+
+        List<Allergy> existing = allergyRepository.findAllByNameIn(names);
+
+        if (!existing.isEmpty()) {
+            String existingNames = existing.stream()
+                .map(Allergy::getName)
+                .collect(Collectors.joining(", "));
+
+            throw new AllergyConflictException(
+                "Allergy already exists with name(s): " + existingNames);
         }
 
         List<Allergy> allergies = allergyMapper.toEntityList(allergyRequests);
         return allergyMapper.toResponseList(allergyRepository.saveAll(allergies));
     }
 
+    @Transactional
     @CacheEvict(value = "allergies", allEntries = true)
     public void delete(Integer id) {
-        allergyRepository.deleteById(id);
+        allergyRepository.deleteAllergyById(id);
     }
 }

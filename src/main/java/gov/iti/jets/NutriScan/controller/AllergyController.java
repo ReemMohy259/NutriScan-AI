@@ -6,6 +6,7 @@ import gov.iti.jets.NutriScan.service.AllergyService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,10 +28,17 @@ public class AllergyController {
         return allergyService.findById(id);
     }
 
-    @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')")
-    @Operation(hidden = true)
-    public List<AllergyResponse> addAllergies(@RequestBody List<@Valid AllergyRequest> allergies) {
-        return allergyService.saveAll(allergies);
-    }
+    // @PostMapping
+    // @Operation(hidden = true)
+    // public List<AllergyResponse> addAllergies(@RequestBody List<@Valid
+    // AllergyRequest> allergies) {
+    // return allergyService.saveAll(allergies);
+    // }
+    //
+    // @DeleteMapping("/{id}")
+    // @Operation(hidden = true)
+    // public ResponseEntity<Void> deleteAllergy(@PathVariable Integer id) {
+    // allergyService.delete(id);
+    // return ResponseEntity.noContent().build();
+    // }
 }
