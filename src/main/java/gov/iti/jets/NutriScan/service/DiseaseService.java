@@ -7,12 +7,16 @@ import gov.iti.jets.NutriScan.exception.DiseaseNotFoundException;
 import gov.iti.jets.NutriScan.mapper.DiseaseMapper;
 import gov.iti.jets.NutriScan.model.Disease;
 import gov.iti.jets.NutriScan.repository.DiseaseRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,26 +51,40 @@ public class DiseaseService {
             throw new DiseaseConflictException(
                 "Disease already exists with name: " + diseaseRequest.name());
         }
-
         Disease disease = diseaseMapper.toEntity(diseaseRequest);
-        return diseaseMapper.toResponse(diseaseRepository.save(disease));
+        try {
+            return diseaseMapper.toResponse(diseaseRepository.save(disease));
+        } catch (DataIntegrityViolationException e) {
+            throw new DiseaseConflictException(
+                "Disease already exists with name: " + diseaseRequest.name());
+        }
     }
 
     @CacheEvict(value = "diseases", allEntries = true)
     public List<DiseaseResponse> saveAll(List<DiseaseRequest> diseaseRequests) {
-        for (var diseaseRequest : diseaseRequests) {
-            if (diseaseRepository.existsByName(diseaseRequest.name())) {
-                throw new DiseaseConflictException(
-                    "Disease already exists with name: " + diseaseRequest.name());
-            }
+
+        Set<String> names = diseaseRequests.stream()
+            .map(DiseaseRequest::name)
+            .collect(Collectors.toSet());
+
+        List<Disease> existing = diseaseRepository.findAllByNameIn(names);
+
+        if (!existing.isEmpty()) {
+            String existingNames = existing.stream()
+                .map(Disease::getName)
+                .collect(Collectors.joining(", "));
+
+            throw new DiseaseConflictException(
+                "Disease already exists with name(s): " + existingNames);
         }
 
         List<Disease> diseases = diseaseMapper.toEntityList(diseaseRequests);
         return diseaseMapper.toResponseList(diseaseRepository.saveAll(diseases));
     }
 
+    @Transactional
     @CacheEvict(value = "diseases", allEntries = true)
     public void delete(Integer id) {
-        diseaseRepository.deleteById(id);
+        diseaseRepository.deleteDiseaseById(id);
     }
 }
