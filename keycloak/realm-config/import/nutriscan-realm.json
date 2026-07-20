@@ -1647,7 +1647,7 @@
     "port": "587",
     "host": "smtp.gmail.com",
     "replyTo": "",
-    "from": "onboarding@resend.dev",
+    "from": "nutriscan@nutriscan.dev",
     "fromDisplayName": "nutriscan",
     "authType": "basic",
     "connectionTimeout": "10000",
