@@ -1647,7 +1647,7 @@
     "port": "587",
     "host": "smtp.gmail.com",
     "replyTo": "",
-    "from": "nutriscanfit@gmail.com",
+    "from": "onboarding@resend.dev",
     "fromDisplayName": "nutriscan",
     "authType": "basic",
     "connectionTimeout": "10000",
