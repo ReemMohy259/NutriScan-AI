@@ -104,7 +104,7 @@ public class AuthService {
         emailService.sendVerificationEmail(users, user.getId());
     }
 
-    public ForgotPasswordResponse sendForgotPasswordEmail(ForgotPasswordRequest request) {
+    public void sendForgotPasswordEmail(ForgotPasswordRequest request) {
         UsersResource users = keycloak.realm(realmName).users();
 
         List<UserRepresentation> usersFound = users.searchByEmail(request.email(), true);
@@ -116,7 +116,5 @@ public class AuthService {
         UserRepresentation user = usersFound.get(0);
 
         emailService.sendForgotPasswordEmail(users, user.getId());
-
-        return new ForgotPasswordResponse("Password reset email sent");
     }
 }

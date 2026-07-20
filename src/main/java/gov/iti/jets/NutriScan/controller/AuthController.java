@@ -30,14 +30,14 @@ public class AuthController {
 
         authService.resendEmail(request);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
 
-        var response = authService.sendForgotPasswordEmail(request);
+        authService.sendForgotPasswordEmail(request);
 
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.noContent().build();
     }
 }
