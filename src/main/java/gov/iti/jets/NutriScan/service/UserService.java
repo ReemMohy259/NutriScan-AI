@@ -4,11 +4,19 @@ import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.exception.AllergyNotFoundException;
 import gov.iti.jets.NutriScan.exception.DiseaseNotFoundException;
 import gov.iti.jets.NutriScan.exception.UserNotFoundException;
+import gov.iti.jets.NutriScan.mapper.AllergyMapper;
+import gov.iti.jets.NutriScan.mapper.DiseaseMapper;
+import gov.iti.jets.NutriScan.mapper.UserMapper;
 import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.AllergyRepository;
 import gov.iti.jets.NutriScan.repository.DiseaseRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.UsersResource;
+import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,11 +28,22 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
 
+    @Value("${keycloak.realm.name}")
+    private String realmName;
+
+    private final Keycloak keycloak;
+
     private final UserRepository userRepository;
 
     private final AllergyRepository allergyRepository;
 
     private final DiseaseRepository diseaseRepository;
+
+    private final UserMapper userMapper;
+
+    private final AllergyMapper allergyMapper;
+
+    private final DiseaseMapper diseaseMapper;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -35,34 +54,52 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User update(UUID id, User userDetails) {
+    public void update(UUID id, UpdateProfileRequest userDetails) {
         User user = findById(id);
 
-        if (userDetails.getDateOfBirth() != null) {
-            user.setDateOfBirth(userDetails.getDateOfBirth());
+        if (userDetails.dateOfBirth() != null) {
+            user.setDateOfBirth(userDetails.dateOfBirth());
         }
 
-        if (userDetails.getGender() != null) {
-            user.setGender(userDetails.getGender());
+        if (userDetails.gender() != null) {
+            user.setGender(userDetails.gender());
         }
 
-        if (userDetails.getHeightCm() != null) {
-            user.setHeightCm(userDetails.getHeightCm());
+        if (userDetails.heightCm() != null) {
+            user.setHeightCm(userDetails.heightCm());
         }
 
-        if (userDetails.getWeightKg() != null) {
-            user.setWeightKg(userDetails.getWeightKg());
+        if (userDetails.weightKg() != null) {
+            user.setWeightKg(userDetails.weightKg());
         }
 
-        if (userDetails.getUserAllergies() != null) {
-            user.setUserAllergies(userDetails.getUserAllergies());
+        if (userDetails.allergyIds() != null && !userDetails.allergyIds().isEmpty()) {
+            Set<UserAllergy> newAllergies = buildUserAllergies(id, user, userDetails.allergyIds());
+            Set<UserAllergy> oldAllergies = user.getUserAllergies();
+
+            for (UserAllergy allergy : oldAllergies) {
+                user.removeAllergy(allergy);
+            }
+
+            for (UserAllergy allergy : newAllergies) {
+                user.addAllergy(allergy);
+            }
         }
 
-        if (userDetails.getUserDiseases() != null) {
-            user.setUserDiseases(userDetails.getUserDiseases());
+        if (userDetails.diseaseIds() != null && !userDetails.diseaseIds().isEmpty()) {
+            Set<UserDisease> newDiseases = buildUserDiseases(id, user, userDetails.diseaseIds());
+            Set<UserDisease> oldDiseases = user.getUserDiseases();
+
+            for (UserDisease disease : oldDiseases) {
+                user.removeDiseases(disease);
+            }
+
+            for (UserDisease disease : newDiseases) {
+                user.addDiseases(disease);
+            }
         }
 
-        return userRepository.save(user);
+        userRepository.save(user);
     }
 
     public User addAllergy(UUID userId, UserAllergy allergy) {
@@ -81,18 +118,66 @@ public class UserService {
         return userRepository.existsById(id);
     }
 
-    public CurrentUserSummaryResponse getCurrentUserSummary() {
-        return null;
+    public CurrentUserSummaryResponse getCurrentUserSummary(Jwt jwt) {
+
+        CurrentUserProfileResponse user = getFullUserFromToken(jwt);
+
+        return userMapper.toResponse(user);
     }
 
-    public CurrentUserProfileResponse getCurrentUserProfile() {
-        return null;
+    public CurrentUserProfileResponse getCurrentUserProfile(Jwt jwt) {
+
+        return getFullUserFromToken(jwt);
     }
 
-    public CurrentUserProfileResponse updateUserProfile(UpdateProfileRequest request) {
+    public void updateUserProfile(UpdateProfileRequest request, Jwt jwt) {
 
-        // Don't forget to check ownership first
-        return null;
+        String userId = jwt.getClaim("sub");
+        UsersResource usersResource = keycloak.realm(realmName).users();
+        UserRepresentation user = usersResource.get(userId).toRepresentation();
+
+        if (request.firstName() != null) {
+            user.setFirstName(request.firstName());
+        }
+
+        if (request.lastName() != null) {
+            user.setLastName(request.lastName());
+        }
+
+        usersResource.get(userId).update(user);
+
+        update(UUID.fromString(userId), request);
+    }
+
+    private CurrentUserProfileResponse getFullUserFromToken(Jwt jwt) {
+
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+
+        UsersResource usersResource = keycloak.realm(realmName).users();
+        UserRepresentation userRepresentation = usersResource.get(String.valueOf(userId))
+            .toRepresentation();
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        return CurrentUserProfileResponse.builder()
+            .id(userId)
+            .email(userRepresentation.getEmail())
+            .username(userRepresentation.getUsername())
+            .firstName(userRepresentation.getFirstName())
+            .lastName(userRepresentation.getLastName())
+            .dateOfBirth(user.getDateOfBirth())
+            .gender(user.getGender())
+            .heightCm(user.getHeightCm())
+            .weightKg(user.getWeightKg())
+            .allergies(
+                allergyMapper.toResponseList(
+                    user.getUserAllergies().stream().map(UserAllergy::getAllergy).toList()))
+            .diseases(
+                diseaseMapper.toResponseList(
+                    user.getUserDiseases().stream().map(UserDisease::getDisease).toList()))
+            .updatedAt(user.getUpdatedAt())
+            .build();
     }
 
     public RegisterResponse register(UUID userId, RegisterRequest request) {
