@@ -19,7 +19,7 @@ public record UpdateProfileRequest(@Size(max = 100) String firstName,
 
     @DecimalMin(value = "0.0", inclusive = false) BigDecimal weightKg,
 
-    List<@NotNull Integer> allergies,
+    List<@NotNull Integer> allergyIds,
 
-    List<@NotNull Integer> diseases) {
+    List<@NotNull Integer> diseaseIds) {
 }

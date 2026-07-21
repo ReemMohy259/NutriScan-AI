@@ -1,6 +1,7 @@
 package gov.iti.jets.NutriScan.dto;
 
 import gov.iti.jets.NutriScan.model.Gender;
+import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -8,6 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+@Builder
 public record CurrentUserProfileResponse(UUID id,
 
     String email,

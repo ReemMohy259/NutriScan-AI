@@ -1,5 +1,7 @@
 package gov.iti.jets.NutriScan.mapper;
 
+import gov.iti.jets.NutriScan.dto.CurrentUserProfileResponse;
+import gov.iti.jets.NutriScan.dto.CurrentUserSummaryResponse;
 import gov.iti.jets.NutriScan.dto.RegisterRequest;
 import gov.iti.jets.NutriScan.model.User;
 import org.mapstruct.Mapper;
@@ -14,4 +16,6 @@ public interface UserMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     User toEntity(RegisterRequest request);
+
+    CurrentUserSummaryResponse toResponse(CurrentUserProfileResponse entity);
 }
