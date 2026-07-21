@@ -2,12 +2,15 @@ package gov.iti.jets.NutriScan.exception;
 
 import gov.iti.jets.NutriScan.dto.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.List;
@@ -136,9 +139,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler({IllegalArgumentException.class, PropertyReferenceException.class,
+            InvalidDataAccessApiUsageException.class})
     public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(
-        IllegalArgumentException ex,
+        Exception ex,
         HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
@@ -150,6 +154,84 @@ public class GlobalExceptionHandler {
             .build();
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(ImageTooLargeException.class)
+    public ResponseEntity<ApiErrorResponse> handleImageTooLargeException(
+        ImageTooLargeException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONTENT_TOO_LARGE.value())
+            .error("IMAGE_TOO_LARGE")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(response);
+    }
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> maxUploadSizeExceededException(
+        MaxUploadSizeExceededException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONTENT_TOO_LARGE.value())
+            .error("IMAGE_TOO_LARGE")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(response);
+    }
+
+    @ExceptionHandler(NoImageProvidedException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoImageProvidedException(
+        NoImageProvidedException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .error("NO_IMAGE_PROVIDED")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(InvalidImageException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
+            InvalidImageException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("INVALID_IMAGE")
+                .message(ex.getMessage())
+                .path(request.getRequestURL().toString())
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
+    }
+    @ExceptionHandler(ImageUploadException.class)
+    public ResponseEntity<ApiErrorResponse> handleImageUploadException(
+            ImageUploadException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                .error("IMAGE_UPLOAD_ERROR")
+                .message(ex.getMessage())
+                .path(request.getRequestURL().toString())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
     }
 
     @ExceptionHandler(Exception.class)
