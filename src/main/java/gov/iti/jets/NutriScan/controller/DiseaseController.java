@@ -1,12 +1,12 @@
 package gov.iti.jets.NutriScan.controller;
 
-import gov.iti.jets.NutriScan.dto.DiseaseRequest;
 import gov.iti.jets.NutriScan.dto.DiseaseResponse;
 import gov.iti.jets.NutriScan.service.DiseaseService;
-import io.swagger.v3.oas.annotations.Operation;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -27,10 +27,17 @@ public class DiseaseController {
         return diseaseService.findById(id);
     }
 
-    @PostMapping
-    // @PreAuthorize("hasRole('ADMIN')")
-    @Operation(hidden = true)
-    public List<DiseaseResponse> addAllergies(@RequestBody List<@Valid DiseaseRequest> diseases) {
-        return diseaseService.saveAll(diseases);
-    }
+    // @PostMapping
+    // @Operation(hidden = true)
+    // public List<DiseaseResponse> addDisease(@RequestBody List<@Valid
+    // DiseaseRequest> diseases) {
+    // return diseaseService.saveAll(diseases);
+    // }
+    //
+    // @DeleteMapping("/{id}")
+    // @Operation(hidden = true)
+    // public ResponseEntity<Void> deleteDisease(@PathVariable Integer id) {
+    // diseaseService.delete(id);
+    // return ResponseEntity.noContent().build();
+    // }
 }

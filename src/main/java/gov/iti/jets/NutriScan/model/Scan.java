@@ -1,9 +1,9 @@
 package gov.iti.jets.NutriScan.model;
 
+import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
@@ -37,11 +37,10 @@ public class Scan {
     @Column(name = "image_url", length = Integer.MAX_VALUE)
     private String imageUrl;
 
-    @Size(max = 20)
-    @NotNull
+    @Enumerated(EnumType.STRING)
     @ColumnDefault("'PROCESSING'")
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private ScanStatus status;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "verdict", length = 20)
