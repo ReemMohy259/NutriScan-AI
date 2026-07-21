@@ -5,21 +5,28 @@ services:
       build:
         context: .
         dockerfile: Dockerfile
+      env_file:
+        - .env
       ports:
         - "8080:8080"
       environment:
         DB_URL: jdbc:postgresql://postgres-app:5432/${APP_DB_NAME:-nutri_scan}
         DB_USERNAME: ${APP_DB_USER:-admin}
         DB_PASSWORD: ${APP_DB_PASSWORD:-admin}
+        SPRING_PROFILES_ACTIVE: ${SPRING_ACTIVE_PROFILES:-docker}
       depends_on:
         postgres-app:
           condition: service_healthy
         keycloak:
-          condition: service_started
+          condition: service_healthy
+        redis:
+          condition: service_healthy
 
   postgres-app:
     container_name: postgres-app
     image: postgres:17-alpine
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: ${APP_DB_NAME:-nutri_scan}
       POSTGRES_USER: ${APP_DB_USER:-admin}
@@ -57,16 +64,37 @@ services:
       KC_DB_PASSWORD: ${KC_DB_PASSWORD:-1234}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KEYCLOCK_SMTP_PASSWORD: ${KEYCLOCK_SMTP_PASSWORD}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: http://localhost:8081
+      KC_HOSTNAME_STRICT: "false"
+      KC_SPI_EMAIL_SENDER_PROVIDER: resend-http
+      KC_SPI_EMAIL_SENDER_RESEND_HTTP_API_KEY: ${RESEND_API_KEY}
+      KC_SPI_EMAIL_SENDER_RESEND_HTTP_API_URL: https://api.resend.com/emails
     depends_on:
       postgres-keycloak:
         condition: service_healthy
     ports:
       - "8081:8080"
       - "9000:9000"
-#    healthcheck:
-#      test: [ "CMD", "curl", "-f", "http://localhost:9000/health/ready" ]
-#      interval: 10s
-#      retries: 10
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000; echo -e \"GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; cat <&3 | grep -q \"\\\"status\\\": \\\"UP\\\"\"'" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   kc-pgdata:

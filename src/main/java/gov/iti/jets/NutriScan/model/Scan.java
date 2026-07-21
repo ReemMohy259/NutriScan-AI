@@ -1,11 +1,10 @@
 package gov.iti.jets.NutriScan.model;
 
+import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
@@ -20,9 +19,13 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "scans")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Scan {
     @Id
     @Column(name = "id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @NotNull
@@ -34,13 +37,11 @@ public class Scan {
     @Column(name = "image_url", length = Integer.MAX_VALUE)
     private String imageUrl;
 
-    @Size(max = 20)
-    @NotNull
+    @Enumerated(EnumType.STRING)
     @ColumnDefault("'PROCESSING'")
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private ScanStatus status;
 
-    @Size(max = 20)
     @Enumerated(EnumType.STRING)
     @Column(name = "verdict", length = 20)
     private Verdict verdict;
@@ -56,11 +57,25 @@ public class Scan {
     @Column(name = "created_at")
     private Instant createdAt;
 
-    @OneToOne(mappedBy = "scans")
+    @OneToOne(mappedBy = "scans", cascade = CascadeType.ALL, orphanRemoval = true)
     private NutritionFact nutritionFact;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "scan_id")
     private Set<ScanFlaggedIngredient> scanFlaggedIngredients = new LinkedHashSet<>();
+
+    public void addFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient) {
+        if (scanFlaggedIngredient != null) {
+            scanFlaggedIngredients.add(scanFlaggedIngredient);
+            scanFlaggedIngredient.setScan(this);
+        }
+    }
+
+    public void removeFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient) {
+        if (scanFlaggedIngredient != null) {
+            scanFlaggedIngredients.remove(scanFlaggedIngredient);
+            scanFlaggedIngredient.setScan(null);
+        }
+    }
 
 }

@@ -2,8 +2,7 @@ package gov.iti.jets.NutriScan.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
@@ -17,9 +16,13 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "nutrition_facts")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class NutritionFact {
     @Id
     @Column(name = "scan_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @MapsId

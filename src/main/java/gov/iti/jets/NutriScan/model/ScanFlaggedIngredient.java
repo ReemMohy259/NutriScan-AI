@@ -3,8 +3,7 @@ package gov.iti.jets.NutriScan.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
@@ -16,6 +15,9 @@ import java.time.Instant;
 @Setter
 @Entity
 @Table(name = "scan_flagged_ingredients")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ScanFlaggedIngredient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
