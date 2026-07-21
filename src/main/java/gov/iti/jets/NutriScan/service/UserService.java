@@ -3,6 +3,7 @@ package gov.iti.jets.NutriScan.service;
 import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.exception.AllergyNotFoundException;
 import gov.iti.jets.NutriScan.exception.DiseaseNotFoundException;
+import gov.iti.jets.NutriScan.exception.ResourceNotFoundException;
 import gov.iti.jets.NutriScan.exception.UserNotFoundException;
 import gov.iti.jets.NutriScan.mapper.AllergyMapper;
 import gov.iti.jets.NutriScan.mapper.DiseaseMapper;
@@ -198,6 +199,22 @@ public class UserService {
         return new RegisterResponse("Registration successful", true);
     }
 
+    public UserAllergiesAndConditionsResponse getUserAllergiesAndConditions(UUID userId) {
+        User user = userRepository.findByIdWithAllergiesAndDiseases(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<String> allergies = user.getUserAllergies()
+            .stream()
+            .map(userAllergy -> userAllergy.getAllergy().getName())
+            .toList();
+
+        List<String> diseases = user.getUserDiseases()
+            .stream()
+            .map(userDisease -> userDisease.getDisease().getName())
+            .toList();
+
+        return new UserAllergiesAndConditionsResponse(allergies, diseases);
+    }
     // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
         return allergyIds.stream().map(id -> {

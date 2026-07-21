@@ -5,7 +5,6 @@ import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
 import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
 import gov.iti.jets.NutriScan.exception.ImageTooLargeException;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
-import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.exception.NoImageProvidedException;
 import gov.iti.jets.NutriScan.service.ScanService;
 import jakarta.validation.constraints.Max;
@@ -18,11 +17,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
@@ -54,8 +51,7 @@ public class ScanController {
 
         ScanSubmitResponse result = scanService.addNewScan(jwt, image);
 
-        // TODO: add ai processing
-        // scanService.processScan(image);
+        scanService.processScan(image, jwt, result.scanId());
 
         return ResponseEntity.accepted().body(result);
     }
