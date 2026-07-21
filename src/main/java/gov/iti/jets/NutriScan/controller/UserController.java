@@ -7,32 +7,31 @@ import gov.iti.jets.NutriScan.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
-    UserService userService;
+    private final UserService userService;
 
     @GetMapping("/me")
-    public CurrentUserSummaryResponse getCurrentUserSummary() {
-        return userService.getCurrentUserSummary();
+    public CurrentUserSummaryResponse getCurrentUserSummary(@AuthenticationPrincipal Jwt jwt) {
+        return userService.getCurrentUserSummary(jwt);
     }
 
     @GetMapping("/profile")
-    public CurrentUserProfileResponse getCurrentUserProfile() {
-        return userService.getCurrentUserProfile();
+    public CurrentUserProfileResponse getCurrentUserProfile(@AuthenticationPrincipal Jwt jwt) {
+        return userService.getCurrentUserProfile(jwt);
     }
 
     @PatchMapping("/profile")
-    public CurrentUserProfileResponse updateUserProfile(UpdateProfileRequest request) {
-        return userService.updateUserProfile(request);
+    public CurrentUserProfileResponse updateUserProfile(
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestBody UpdateProfileRequest request) {
+        userService.updateUserProfile(request, jwt);
+
+        return userService.getCurrentUserProfile(jwt);
     }
 }

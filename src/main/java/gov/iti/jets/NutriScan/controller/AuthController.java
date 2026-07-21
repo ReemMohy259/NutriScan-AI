@@ -1,9 +1,6 @@
 package gov.iti.jets.NutriScan.controller;
 
-import gov.iti.jets.NutriScan.dto.ForgotPasswordRequest;
-import gov.iti.jets.NutriScan.dto.RegisterRequest;
-import gov.iti.jets.NutriScan.dto.RegisterResponse;
-import gov.iti.jets.NutriScan.dto.ResendVerificationRequest;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +22,14 @@ public class AuthController {
     }
 
     @PostMapping("/resend-verification")
-    public ResponseEntity<Void> resendVerification(
+    public ResponseEntity<?> resendVerification(
         @RequestBody @Valid ResendVerificationRequest request) {
 
         authService.resendEmail(request);
 
-        return ResponseEntity.ok().build();
+        var response = new ForgotPasswordResponse("Verification Email Send Successfully");
+
+        return ResponseEntity.ok().body(response);
     }
 
     @PostMapping("/forgot-password")
