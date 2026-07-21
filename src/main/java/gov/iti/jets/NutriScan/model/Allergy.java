@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @Entity
@@ -22,4 +24,17 @@ public class Allergy {
     @NotNull
     @Column(name = "name", nullable = false, length = 150, unique = true)
     private String name;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (!(o instanceof Allergy allergy))
+            return false;
+
+        return Objects.equals(getName(), allergy.getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(getName());
+    }
 }

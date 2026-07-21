@@ -1643,15 +1643,15 @@
     "envelopeFrom": "",
     "ssl": "false",
     "timeout": "10000",
-    "password": "${KEYCLOCK_GMAIL_APP_PASSWORD}",
+    "password": "${KEYCLOCK_SMTP_PASSWORD}",
     "port": "587",
-    "host": "smtp.gmail.com",
+    "host": "smtp.resend.com",
     "replyTo": "",
     "from": "nutriscan@nutriscan.dev",
     "fromDisplayName": "nutriscan",
     "authType": "basic",
     "connectionTimeout": "10000",
-    "user": "nutriscanfit@gmail.com"
+    "user": "resend"
   },
   "loginTheme": "nutriscan",
   "accountTheme": "",
