@@ -205,31 +205,31 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidImageException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
-            InvalidImageException ex,
-            HttpServletRequest request) {
+        InvalidImageException ex,
+        HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error("INVALID_IMAGE")
-                .message(ex.getMessage())
-                .path(request.getRequestURL().toString())
-                .build();
+            .timestamp(Instant.now())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .error("INVALID_IMAGE")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
 
         return ResponseEntity.badRequest().body(response);
     }
     @ExceptionHandler(ImageUploadException.class)
     public ResponseEntity<ApiErrorResponse> handleImageUploadException(
-            ImageUploadException ex,
-            HttpServletRequest request) {
+        ImageUploadException ex,
+        HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.SERVICE_UNAVAILABLE.value())
-                .error("IMAGE_UPLOAD_ERROR")
-                .message(ex.getMessage())
-                .path(request.getRequestURL().toString())
-                .build();
+            .timestamp(Instant.now())
+            .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+            .error("IMAGE_UPLOAD_ERROR")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
 
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
     }

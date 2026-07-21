@@ -33,8 +33,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(withDefaults()).
-        requestCache(RequestCacheConfigurer::disable)
+        http.cors(withDefaults())
+            .requestCache(RequestCacheConfigurer::disable)
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(
                 req -> req

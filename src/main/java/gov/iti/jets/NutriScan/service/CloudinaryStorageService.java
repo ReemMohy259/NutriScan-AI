@@ -17,10 +17,8 @@ public class CloudinaryStorageService {
 
     public String upload(MultipartFile file) throws IOException {
 
-        Map<?, ?> result = cloudinary.uploader().upload(
-                file.getBytes(),
-                ObjectUtils.asMap("folder", "nutriscan")
-        );
+        Map<?, ?> result = cloudinary.uploader()
+            .upload(file.getBytes(), ObjectUtils.asMap("folder", "nutriscan"));
 
         return result.get("secure_url").toString();
     }
