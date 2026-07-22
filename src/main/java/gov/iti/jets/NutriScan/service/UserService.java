@@ -215,32 +215,56 @@ public class UserService {
 
     // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
-        return allergyIds.stream().map(id -> {
-            Allergy allergy = allergyRepository.findById(id)
-                .orElseThrow(
-                    () -> new AllergyNotFoundException("Allergy not found with ID: " + id));
+        Set<Allergy> allergies = allergyRepository.findAllByIdIn(allergyIds);
 
-            UserAllergy ua = new UserAllergy();
-            ua.setId(new UserAllergyId(userId, id));
-            ua.setUser(user);
-            ua.setAllergy(allergy);
+        Set<Integer> foundIds = allergies.stream()
+                .map(Allergy::getId)
+                .collect(Collectors.toSet());
 
-            return ua;
+        String notFoundIds = allergyIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .map(String::valueOf)
+                .collect(Collectors.joining(", "));
+
+        if (!notFoundIds.isEmpty()) {
+            throw new AllergyNotFoundException("Allergy not found with ids: " + notFoundIds);
+        }
+
+        return allergies.stream().map(allergy -> {
+
+            UserAllergy userAllergy = new UserAllergy();
+            userAllergy.setId(new UserAllergyId(userId, allergy.getId()));
+            userAllergy.setUser(user);
+            userAllergy.setAllergy(allergy);
+
+            return userAllergy;
         }).collect(Collectors.toSet());
     }
 
     private Set<UserDisease> buildUserDiseases(UUID userId, User user, List<Integer> diseaseIds) {
-        return diseaseIds.stream().map(id -> {
-            Disease disease = diseaseRepository.findById(id)
-                .orElseThrow(
-                    () -> new DiseaseNotFoundException("Disease not found with ID: " + id));
+        Set<Disease> diseases = diseaseRepository.findAllByIdIn(diseaseIds);
 
-            UserDisease ud = new UserDisease();
-            ud.setId(new UserDiseaseId(userId, id));
-            ud.setUser(user);
-            ud.setDisease(disease);
+        Set<Integer> foundIds = diseases.stream()
+                .map(Disease::getId)
+                .collect(Collectors.toSet());
 
-            return ud;
+        String notFoundIds = diseaseIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .map(String::valueOf)
+                .collect(Collectors.joining(", "));
+
+        if (!notFoundIds.isEmpty()) {
+            throw new AllergyNotFoundException("Disease not found with ids: " + notFoundIds);
+        }
+
+        return diseases.stream().map(disease -> {
+
+            UserDisease userDisease = new UserDisease();
+            userDisease.setId(new UserDiseaseId(userId, disease.getId()));
+            userDisease.setUser(user);
+            userDisease.setDisease(disease);
+
+            return userDisease;
         }).collect(Collectors.toSet());
     }
 }

@@ -1,5 +1,6 @@
 package gov.iti.jets.NutriScan.repository;
 
+import gov.iti.jets.NutriScan.model.Allergy;
 import gov.iti.jets.NutriScan.model.Disease;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -24,4 +25,5 @@ public interface DiseaseRepository extends JpaRepository<Disease, Integer> {
     @Query("DELETE FROM Disease d WHERE d.id = :id")
     int deleteDiseaseById(@Param("id") Integer id);
 
+    Set<Disease> findAllByIdIn(List<Integer> ids);
 }

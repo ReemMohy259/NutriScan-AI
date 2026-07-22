@@ -12,12 +12,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmailService {
 
-    @Async
+    @Async("asyncExecutor")
     public void sendVerificationEmail(UsersResource usersResource, String userId) {
         usersResource.get(userId).sendVerifyEmail(3600);
     }
 
-    @Async
+    @Async("asyncExecutor")
     public void sendForgotPasswordEmail(UsersResource usersResource, String userId) {
         usersResource.get(userId).executeActionsEmail(List.of("UPDATE_PASSWORD"));
     }
