@@ -76,7 +76,8 @@ public class UserService {
 
         if (userDetails.allergyIds() != null && !userDetails.allergyIds().isEmpty()) {
             Set<UserAllergy> newAllergies = buildUserAllergies(id, user, userDetails.allergyIds());
-            Set<UserAllergy> oldAllergies = new HashSet<>(user.getUserAllergies()); // defensive copy
+            Set<UserAllergy> oldAllergies = new HashSet<>(user.getUserAllergies()); // defensive
+                                                                                    // copy
 
             for (UserAllergy allergy : oldAllergies) {
                 user.removeAllergy(allergy);
