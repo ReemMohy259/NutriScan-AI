@@ -86,6 +86,13 @@ public class UserService {
             for (UserAllergy allergy : newAllergies) {
                 user.addAllergy(allergy);
             }
+        } else if (userDetails.allergyIds() != null) {
+            Set<UserAllergy> oldAllergies = new HashSet<>(user.getUserAllergies()); // defensive
+                                                                                    // copy
+
+            for (UserAllergy allergy : oldAllergies) {
+                user.removeAllergy(allergy);
+            }
         }
 
         if (userDetails.diseaseIds() != null && !userDetails.diseaseIds().isEmpty()) {
@@ -98,6 +105,12 @@ public class UserService {
 
             for (UserDisease disease : newDiseases) {
                 user.addDiseases(disease);
+            }
+        } else if (userDetails.diseaseIds() != null) {
+            Set<UserDisease> oldDiseases = new HashSet<>(user.getUserDiseases()); // defensive copy
+
+            for (UserDisease disease : oldDiseases) {
+                user.removeDiseases(disease);
             }
         }
 
