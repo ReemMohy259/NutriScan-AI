@@ -254,7 +254,7 @@ public class UserService {
                 .collect(Collectors.joining(", "));
 
         if (!notFoundIds.isEmpty()) {
-            throw new AllergyNotFoundException("Disease not found with ids: " + notFoundIds);
+            throw new DiseaseNotFoundException("Disease not found with ids: " + notFoundIds);
         }
 
         return diseases.stream().map(disease -> {
