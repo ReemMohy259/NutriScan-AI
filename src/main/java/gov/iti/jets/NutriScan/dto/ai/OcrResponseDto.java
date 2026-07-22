@@ -1,10 +1,7 @@
 package gov.iti.jets.NutriScan.dto.ai;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -13,6 +10,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OcrResponseDto {
+
+    @JsonProperty("product_name")
+    private String productName;
 
     @JsonProperty("is_food_product")
     private boolean foodProduct;

@@ -5,6 +5,7 @@ import gov.iti.jets.NutriScan.dto.ai.OcrResponseDto;
 import gov.iti.jets.NutriScan.exception.OcrModelException;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.ai.content.Media;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,16 +21,21 @@ import java.util.Objects;
 public class AiService {
 
     private final ChatClient chatClient;
+    private final ChatClient opencodeChatClient;
     private final ObjectMapper objectMapper;
 
-    public AiService(ChatClient chatClient, ObjectMapper objectMapper) {
+    public AiService(
+        ChatClient chatClient,
+        @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
+        ObjectMapper objectMapper) {
         this.chatClient = chatClient;
+        this.opencodeChatClient = opencodeChatClient;
         this.objectMapper = objectMapper;
     }
     public FoodSafetyResponse checkSafety(IngredientsSafetyPrompt requestData) {
         String userPrompt = objectMapper.writeValueAsString(requestData);
 
-        return chatClient.prompt()
+        return opencodeChatClient.prompt()
             .system(Prompts.FOOD_SAFETY_SYSTEM)
             .user(userPrompt)
             .call()
@@ -52,6 +58,7 @@ public class AiService {
                 .entity(OcrResponseDto.class);
 
         } catch (Exception e) {
+            e.printStackTrace();
             throw new OcrModelException("Failed to analyze image please try again later", e);
         }
     }

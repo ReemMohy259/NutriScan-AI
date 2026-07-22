@@ -166,6 +166,7 @@ public final class Prompts {
         Use exactly this schema:
 
         {
+          "product_name": string,
           "is_food_product": boolean,
           "is_relevant": boolean,
           "need_search": boolean,
@@ -183,6 +184,7 @@ public final class Prompts {
         1. If the image is NOT a food product:
 
         {
+          "product_name": product name,
           "is_food_product": false,
           "is_relevant": false,
           "need_search": false,
@@ -209,6 +211,7 @@ public final class Prompts {
         4. If the exact product cannot be uniquely identified:
 
         {
+          "product_name": product name,
           "is_food_product": true,
           "is_relevant": false,
           "need_search": false,
@@ -228,7 +231,9 @@ public final class Prompts {
 
         10. Always choose one product only in the search query
 
-        11. Return nothing except the JSON object.
+        11. Add product name only if it is visible in the image don't assume the name return the name as unknown if it is not visible.
+
+        12. Return nothing except the JSON object.
 
         """;
 

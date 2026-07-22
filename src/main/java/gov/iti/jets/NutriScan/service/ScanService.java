@@ -9,6 +9,7 @@ import gov.iti.jets.NutriScan.dto.ai.IngredientsSafetyPrompt;
 import gov.iti.jets.NutriScan.dto.ai.OcrResponseDto;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.exception.ImageUploadException;
+import gov.iti.jets.NutriScan.exception.OcrModelException;
 import gov.iti.jets.NutriScan.exception.ScanNotFoundException;
 import gov.iti.jets.NutriScan.mapper.ScanMapper;
 import gov.iti.jets.NutriScan.model.Scan;
@@ -66,12 +67,23 @@ public class ScanService {
     public void processScan(MultipartFile image, Jwt jwt, UUID scanId) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        OcrResponseDto ocrResponse = aiService.checkImage(image);
-
+        OcrResponseDto ocrResponse = null;
         Scan scan = scanRepository.findById(scanId)
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
 
+        try {
+            ocrResponse = aiService.checkImage(image);
+            System.out.println(ocrResponse);
+
+        } catch (OcrModelException e) {
+            System.out.println("OCR model error:");
+            System.out.println(e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
+            return;
+        }
+
         if (!ocrResponse.isRelevant() || !ocrResponse.isFoodProduct()) {
+            System.out.println("Image is not relevant");
             scan.setStatus(ScanStatus.FAILED);
             return;
             // throw new BusinessException("Image is not relevant");
@@ -87,18 +99,31 @@ public class ScanService {
         }
 
         if (ingredients == null || ingredients.isEmpty()) {
+            System.out.println("Failed to parse ingredients.");
             scan.setStatus(ScanStatus.FAILED);
             return;
             // throw new IngredientParsingException("Failed to parse ingredients.");
         }
         UserAllergiesAndConditionsResponse userData = userService
             .getUserAllergiesAndConditions(userId);
-        FoodSafetyResponse result = aiService.checkSafety(
-            new IngredientsSafetyPrompt(
-                ingredients,
-                userData.getAllergies(),
-                userData.getDiseases()));
 
+        FoodSafetyResponse result = null;
+
+        try {
+            result = aiService.checkSafety(
+                new IngredientsSafetyPrompt(
+                    ingredients,
+                    userData.getAllergies(),
+                    userData.getDiseases()));
+
+        } catch (Exception e) {
+            System.out.println("check safety model error:");
+            System.out.println(e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
+            return;
+        }
+
+        scan.setProductName(ocrResponse.getProductName());
         scan.setStatus(ScanStatus.COMPLETED);
         scan.setVerdict(result.verdict());
         scan.setSummary(result.summary());
