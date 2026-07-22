@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -75,7 +76,8 @@ public class UserService {
 
         if (userDetails.allergyIds() != null && !userDetails.allergyIds().isEmpty()) {
             Set<UserAllergy> newAllergies = buildUserAllergies(id, user, userDetails.allergyIds());
-            Set<UserAllergy> oldAllergies = user.getUserAllergies();
+            Set<UserAllergy> oldAllergies = new HashSet<>(user.getUserAllergies()); // defensive
+                                                                                    // copy
 
             for (UserAllergy allergy : oldAllergies) {
                 user.removeAllergy(allergy);
@@ -88,7 +90,7 @@ public class UserService {
 
         if (userDetails.diseaseIds() != null && !userDetails.diseaseIds().isEmpty()) {
             Set<UserDisease> newDiseases = buildUserDiseases(id, user, userDetails.diseaseIds());
-            Set<UserDisease> oldDiseases = user.getUserDiseases();
+            Set<UserDisease> oldDiseases = new HashSet<>(user.getUserDiseases()); // defensive copy
 
             for (UserDisease disease : oldDiseases) {
                 user.removeDiseases(disease);
