@@ -28,6 +28,10 @@ public record CurrentUserProfileResponse(UUID id,
 
     BigDecimal weightKg,
 
+    Double bmi,
+
+    Double tdee,
+
     List<AllergyResponse> allergies,
 
     List<DiseaseResponse> diseases,

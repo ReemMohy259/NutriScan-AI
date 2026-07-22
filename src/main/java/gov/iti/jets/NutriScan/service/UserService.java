@@ -16,9 +16,13 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cglib.core.Local;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -185,6 +189,9 @@ public class UserService {
             .gender(user.getGender())
             .heightCm(user.getHeightCm())
             .weightKg(user.getWeightKg())
+            .bmi(calculateBmi(user.getHeightCm(), user.getWeightKg()))
+            .tdee(calculateTdee(user.getDateOfBirth(), user.getHeightCm(),
+                    user.getWeightKg(), user.getGender()))
             .allergies(
                 allergyMapper.toResponseList(
                     user.getUserAllergies().stream().map(UserAllergy::getAllergy).toList()))
@@ -230,6 +237,7 @@ public class UserService {
             throw new AllergyNotFoundException("Allergy not found with ids: " + notFoundIds);
         }
 
+        // TODO: fix multiple select and insert statments (maybe batch them)
         return allergies.stream().map(allergy -> {
 
             UserAllergy userAllergy = new UserAllergy();
@@ -257,6 +265,7 @@ public class UserService {
             throw new DiseaseNotFoundException("Disease not found with ids: " + notFoundIds);
         }
 
+        // TODO: fix multiple select and insert statments (maybe batch them)
         return diseases.stream().map(disease -> {
 
             UserDisease userDisease = new UserDisease();
@@ -266,5 +275,20 @@ public class UserService {
 
             return userDisease;
         }).collect(Collectors.toSet());
+    }
+
+    private Double calculateBmi(BigDecimal heightInCm, BigDecimal weightInKg) {
+        return weightInKg.doubleValue() / Math.pow(heightInCm.doubleValue() / 100, 2);
+    }
+
+    private Double calculateTdee(LocalDate userDob, BigDecimal heightInCm,
+                                 BigDecimal weightInKg, Gender userGender) {
+
+        long age = ChronoUnit.YEARS.between(userDob, LocalDate.now());
+
+        double bmr = (10 * weightInKg.doubleValue()) + (6.25 * heightInCm.doubleValue())
+                - (5 * age) + (userGender.equals(Gender.MALE) ? 5 : -161);
+
+        return bmr * 1.2; // 1.2 resembles (Desk job, little to no intentional exercise).
     }
 }
