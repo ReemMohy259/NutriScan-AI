@@ -3,7 +3,6 @@ package gov.iti.jets.NutriScan.service;
 import gov.iti.jets.NutriScan.dto.ScanNotification;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +17,9 @@ public class ScanNotificationService {
     public void notifyUser(UUID userId, UUID scanId, ScanStatus status) {
 
         messagingTemplate.convertAndSendToUser(
-                userId.toString(),
-                "/queue/scans",
-                new ScanNotification(scanId, status)
-        );
+            userId.toString(),
+            "/queue/scans",
+            new ScanNotification(scanId, status));
     }
 
 }

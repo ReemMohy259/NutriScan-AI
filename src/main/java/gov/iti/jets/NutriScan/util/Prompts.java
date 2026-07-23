@@ -327,7 +327,7 @@ public final class Prompts {
     public static final String SEARCH_MODEL_SYSTEM = """
                  You are an ingredient extraction assistant.
 
-                 You have access to a search tool, but it is a last resort.
+                 You have access to a search tool, but it is a last option.
 
                  ## Tool Policy (Highest Priority)
                  DO NOT call the search tool if the user provides enough information to identify the product.
@@ -350,7 +350,7 @@ public final class Prompts {
 
                  ## Output
 
-                 Return ONLY a JSON array.
+                 Return ONLY a JSON array without any markdown or additional text array brackets only.
 
                  Example:
                  [

@@ -13,15 +13,9 @@ public class ScanStatusChangedListener {
 
     private final ScanNotificationService notificationService;
 
-    @TransactionalEventListener(
-            phase = TransactionPhase.AFTER_COMMIT
-    )
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onScanCompleted(ScanStatusChangedEvent event) {
 
-        notificationService.notifyUser(
-                event.userId(),
-                event.scanId(),
-                event.status()
-        );
+        notificationService.notifyUser(event.userId(), event.scanId(), event.status());
     }
 }

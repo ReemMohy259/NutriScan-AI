@@ -4,6 +4,7 @@ import gov.iti.jets.NutriScan.dto.ai.*;
 import gov.iti.jets.NutriScan.exception.MealModelException;
 import gov.iti.jets.NutriScan.exception.OcrModelException;
 import gov.iti.jets.NutriScan.util.Prompts;
+import gov.iti.jets.NutriScan.util.tools.TavilySearchTool;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.content.Media;
@@ -11,7 +12,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -20,13 +20,15 @@ public class AiService {
 
     private final ChatClient chatClient;
     private final ChatClient opencodeChatClient;
+    private final TavilySearchTool tavilySearchTool;
 
     public AiService(
         ChatClient chatClient,
         @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
-        ObjectMapper objectMapper) {
+        TavilySearchTool tavilySearchTool) {
         this.chatClient = chatClient;
         this.opencodeChatClient = opencodeChatClient;
+        this.tavilySearchTool = tavilySearchTool;
     }
 
     public FoodSafetyResponse checkSafety(IngredientsSafetyPrompt requestData) {
@@ -109,17 +111,26 @@ public class AiService {
         }
     }
 
-    // public List<String> searchModelGemini(String query, String productName) {
-    // String promptText = String.format("get the ingredients of product: %s and the
-    // recommended search query is %s", productName, query);
-    //
-    // List<String> response = chatClient.prompt()
-    // .system(Prompts.SEARCH_MODEL_SYSTEM)
-    // .user(promptText)
-    // .call()
-    // .entity(new ParameterizedTypeReference<List<String>>() {});
+    public List<String> searchForIngredientsModel(String query, String productName) {
 
-    // System.out.println("Gemini Response: " + response);
-    // return response;
-    // }
+        String promptText = String.format(
+            "get the ingredients of product: %s and the recommended search query is %s",
+            productName,
+            query);
+
+        // var options =
+        // OpenAiChatOptions.builder().parallelToolCalls(false).maxTokens(5000);
+
+        String response = chatClient.prompt()
+            .system(Prompts.SEARCH_MODEL_SYSTEM)
+            // .options(options)
+            .user(promptText)
+            .tools(tavilySearchTool)
+            .call()
+            .content();
+        // .entity(new ParameterizedTypeReference<List<String>>() {});
+
+        System.out.println("search Response: " + response);
+        return List.of(response);
+    }
 }
