@@ -1,0 +1,2 @@
+ALTER TABLE family_members
+    ADD COLUMN relation VARCHAR(150) NOT NULL DEFAULT '';

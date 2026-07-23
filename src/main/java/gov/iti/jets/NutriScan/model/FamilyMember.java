@@ -22,6 +22,9 @@ public class FamilyMember {
     @Column(nullable = false, length = 150)
     private String name;
 
+    @Column(nullable = false, length = 150)
+    private String relation;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
     private User user;
