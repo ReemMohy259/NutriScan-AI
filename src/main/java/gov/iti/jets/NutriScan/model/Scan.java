@@ -34,6 +34,9 @@ public class Scan {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "product_name")
+    private String productName;
+
     @Column(name = "image_url", length = Integer.MAX_VALUE)
     private String imageUrl;
 

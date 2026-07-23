@@ -156,6 +156,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
+    @ExceptionHandler(OcrModelException.class)
+    public ResponseEntity<ApiErrorResponse> handleOcrModelException(
+        Exception ex,
+        HttpServletRequest request) {
+
+        ex.printStackTrace();
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+            .error("INTERNAL_SERVER_ERROR")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+    @ExceptionHandler(IngredientParsingException.class)
+    public ResponseEntity<String> handleIngredientParsing(IngredientParsingException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(ex.getMessage());
+    }
+
     @ExceptionHandler(ImageTooLargeException.class)
     public ResponseEntity<ApiErrorResponse> handleImageTooLargeException(
         ImageTooLargeException ex,

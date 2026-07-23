@@ -31,21 +31,26 @@ public class NutritionFact {
     @JoinColumn(name = "scan_id", nullable = false)
     private Scan scans;
 
-    @Size(max = 50)
-    @Column(name = "serving_size", length = 50)
-    private String servingSize;
+    @Column(name = "calories")
+    private Integer calories;
 
-    @Column(name = "calories_per_serving")
-    private Integer caloriesPerServing;
+    @Column(name = "protein_g", precision = 6, scale = 2)
+    private BigDecimal proteinGrams;
 
-    @Column(name = "sugar_g", precision = 6, scale = 2)
-    private BigDecimal sugarG;
+    @Column(name = "carbs_g", precision = 6, scale = 2)
+    private BigDecimal carbsGrams;
 
     @Column(name = "fat_g", precision = 6, scale = 2)
     private BigDecimal fatG;
 
-    @Column(name = "saturated_fat_g", precision = 6, scale = 2)
-    private BigDecimal saturatedFatG;
+    @Column(name = "fiber_g", precision = 6, scale = 2)
+    private BigDecimal fiberGrams;
+
+    @Column(name = "sugar_g", precision = 6, scale = 2)
+    private BigDecimal sugarG;
+
+    @Column(name = "sodium_mg", precision = 8, scale = 2)
+    private BigDecimal sodiumMg;
 
     @CreationTimestamp
     @Column(name = "created_at")
