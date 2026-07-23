@@ -1,9 +1,6 @@
 package gov.iti.jets.NutriScan.service;
 
-import gov.iti.jets.NutriScan.dto.ScanResultResponse;
-import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
-import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
-import gov.iti.jets.NutriScan.dto.UserAllergiesAndConditionsResponse;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.dto.ai.*;
 import gov.iti.jets.NutriScan.exception.*;
 import gov.iti.jets.NutriScan.mapper.NutritionFactMapper;
@@ -17,6 +14,7 @@ import gov.iti.jets.NutriScan.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
@@ -39,6 +37,7 @@ public class ScanService {
     private final ScanMapper scanMapper;
     private final CloudinaryStorageService cloudinaryStorageService;
     private final NutritionFactMapper nutritionFactMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ScanSubmitResponse addNewScan(Jwt jwt, MultipartFile file) {
@@ -61,19 +60,19 @@ public class ScanService {
         return new ScanSubmitResponse(scanEntity.getId(), scanEntity.getStatus());
     }
 
-    @Async
+    @Async("asyncExecutor")
     @Transactional
     public void processScan(
-        Jwt jwt,
-        UUID scanId,
-        byte[] bytes,
-        @Nullable String contentType,
-        @Nullable String originalFilename) {
+            Jwt jwt,
+            UUID scanId,
+            byte[] bytes,
+            @Nullable String contentType,
+            @Nullable String originalFilename) {
 
         UUID userId = UUID.fromString(jwt.getSubject());
 
         Scan scan = scanRepository.findById(scanId)
-            .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
+                .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
 
         try {
             OcrResponseDto ocrResponse = aiService.checkImage(bytes, contentType, originalFilename);
@@ -85,22 +84,23 @@ public class ScanService {
 
             if (ocrResponse.isMeal()) {
                 UserAllergiesAndConditionsResponse userData = userService
-                    .getUserAllergiesAndConditions(userId);
+                        .getUserAllergiesAndConditions(userId);
 
                 MealFoodSafetyResponse response = aiService.mealCheckSafety(
-                    bytes,
-                    contentType,
-                    new MealIngredientsSafetyPrompt(
-                        userData.getAllergies(),
-                        userData.getDiseases()));
+                        bytes,
+                        contentType,
+                        new MealIngredientsSafetyPrompt(
+                                userData.getAllergies(),
+                                userData.getDiseases()));
 
                 System.out.println(response);
 
                 updateCompletedScan(
-                    ocrResponse,
-                    scan,
-                    response.foodSafetyResponse(),
-                    response.nutritionFacts());
+                        ocrResponse,
+                        scan,
+                        response.foodSafetyResponse(),
+                        response.nutritionFacts(),
+                        userId);
 
                 return;
             }
@@ -119,47 +119,85 @@ public class ScanService {
                 throw new IngredientParsingException("Failed to parse ingredients.");
 
             UserAllergiesAndConditionsResponse userData = userService
-                .getUserAllergiesAndConditions(userId);
+                    .getUserAllergiesAndConditions(userId);
 
             FoodSafetyResponse result = aiService.checkSafety(
-                new IngredientsSafetyPrompt(
-                    ingredients,
-                    userData.getAllergies(),
-                    userData.getDiseases()));
+                    new IngredientsSafetyPrompt(
+                            ingredients,
+                            userData.getAllergies(),
+                            userData.getDiseases()));
 
-            updateCompletedScan(ocrResponse, scan, result, ocrResponse.getNutritionFacts());
+            updateCompletedScan(ocrResponse, scan, result, ocrResponse.getNutritionFacts(), userId);
 
         } catch (MealModelException e) {
             System.out.println("Meal model error:");
             System.out.println(e.getMessage());
             scan.setStatus(ScanStatus.FAILED);
+
+            eventPublisher.publishEvent(
+                    new ScanStatusChangedEvent(
+                            userId,
+                            scan.getId(),
+                            ScanStatus.FAILED
+                    )
+            );
         } catch (OcrModelException e) {
             System.out.println("OCR model error:");
             System.out.println(e.getMessage());
             scan.setStatus(ScanStatus.FAILED);
 
+            eventPublisher.publishEvent(
+                    new ScanStatusChangedEvent(
+                            userId,
+                            scan.getId(),
+                            ScanStatus.FAILED
+                    )
+            );
         } catch (BusinessException e) {
             System.out.println("Image is not relevant:");
             System.out.println(e.getMessage());
             scan.setStatus(ScanStatus.FAILED);
 
+            eventPublisher.publishEvent(
+                    new ScanStatusChangedEvent(
+                            userId,
+                            scan.getId(),
+                            ScanStatus.FAILED
+                    )
+            );
         } catch (IngredientParsingException e) {
             System.out.println("Failed to parse ingredients:");
             System.out.println(e.getMessage());
             scan.setStatus(ScanStatus.FAILED);
 
+            eventPublisher.publishEvent(
+                    new ScanStatusChangedEvent(
+                            userId,
+                            scan.getId(),
+                            ScanStatus.FAILED
+                    )
+            );
         } catch (Exception e) {
             System.out.println("Processing error:");
             System.out.println(e.getMessage());
             scan.setStatus(ScanStatus.FAILED);
+
+            eventPublisher.publishEvent(
+                    new ScanStatusChangedEvent(
+                            userId,
+                            scan.getId(),
+                            ScanStatus.FAILED
+                    )
+            );
         }
     }
 
     private void updateCompletedScan(
-        OcrResponseDto ocrResponse,
-        Scan scan,
-        FoodSafetyResponse response,
-        NutritionFactsDto nutritionFacts) {
+            OcrResponseDto ocrResponse,
+            Scan scan,
+            FoodSafetyResponse response,
+            NutritionFactsDto nutritionFacts,
+            UUID userId) {
 
         System.out.println("--------------------------------------------------------");
         System.out.println(response);
@@ -181,22 +219,30 @@ public class ScanService {
         }
 
         response.flaggedIngredients()
-            .forEach(
-                flaggedIngredient -> scan.addFlaggedIngredient(
-                    ScanFlaggedIngredient.builder()
-                        .conditionName(String.join(", ", flaggedIngredient.name()))
-                        .ingredientName(flaggedIngredient.ingredient())
-                        .type(flaggedIngredient.type().name())
-                        .reason(flaggedIngredient.reason())
-                        .build()));
+                .forEach(
+                        flaggedIngredient -> scan.addFlaggedIngredient(
+                                ScanFlaggedIngredient.builder()
+                                        .conditionName(String.join(", ", flaggedIngredient.name()))
+                                        .ingredientName(flaggedIngredient.ingredient())
+                                        .type(flaggedIngredient.type().name())
+                                        .reason(flaggedIngredient.reason())
+                                        .build()));
+
+        eventPublisher.publishEvent(
+                new ScanStatusChangedEvent(
+                        userId,
+                        scan.getId(),
+                        ScanStatus.COMPLETED
+                )
+        );
     }
 
     public ScanResultResponse findById(UUID id, Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
         return scanRepository.findByIdWithDetails(id, userId)
-            .map(scanMapper::toResultResponse)
-            .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + id));
+                .map(scanMapper::toResultResponse)
+                .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + id));
     }
 
     // Careful for N+1 queries
