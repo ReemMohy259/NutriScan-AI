@@ -6,9 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-public record FamilyMemberRequest(
-        @NotBlank @Size(max = 150) String name,
-        @NotBlank @Size(max = 150) String relation,
-        List<@NotNull Integer> allergyIds,
-        List<@NotNull Integer> diseaseIds) {
+public record FamilyMemberRequest(@NotBlank @Size(max = 150) String name,
+    @NotBlank @Size(max = 150) String relation, List<@NotNull Integer> allergyIds,
+    List<@NotNull Integer> diseaseIds) {
 }
