@@ -5,9 +5,7 @@ import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
 import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
 import gov.iti.jets.NutriScan.dto.UserAllergiesAndConditionsResponse;
 import gov.iti.jets.NutriScan.dto.ai.*;
-import gov.iti.jets.NutriScan.exception.ImageUploadException;
-import gov.iti.jets.NutriScan.exception.OcrModelException;
-import gov.iti.jets.NutriScan.exception.ScanNotFoundException;
+import gov.iti.jets.NutriScan.exception.*;
 import gov.iti.jets.NutriScan.mapper.NutritionFactMapper;
 import gov.iti.jets.NutriScan.mapper.ScanMapper;
 import gov.iti.jets.NutriScan.model.NutritionFact;
@@ -74,96 +72,87 @@ public class ScanService {
 
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        OcrResponseDto ocrResponse;
         Scan scan = scanRepository.findById(scanId)
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
 
         try {
-            ocrResponse = aiService.checkImage(bytes, contentType, originalFilename);
+            OcrResponseDto ocrResponse = aiService.checkImage(bytes, contentType, originalFilename);
+
             System.out.println(ocrResponse);
 
-        } catch (OcrModelException e) {
-            System.out.println("OCR model error:");
-            System.out.println(e.getMessage());
-            scan.setStatus(ScanStatus.FAILED);
-            return;
-        }
+            if (!ocrResponse.isRelevant() || !ocrResponse.isFoodProduct())
+                throw new BusinessException("Image is not relevant");
 
-        if (!ocrResponse.isRelevant() || !ocrResponse.isFoodProduct()) {
-            System.out.println("Image is not relevant");
-            scan.setStatus(ScanStatus.FAILED);
-            return;
-            // throw new BusinessException("Image is not relevant");
-        }
-        UserAllergiesAndConditionsResponse userData;
+            if (ocrResponse.isMeal()) {
+                UserAllergiesAndConditionsResponse userData = userService
+                    .getUserAllergiesAndConditions(userId);
 
-        if (ocrResponse.isMeal()) {
-            try {
-                userData = userService.getUserAllergiesAndConditions(userId);
                 MealFoodSafetyResponse response = aiService.mealCheckSafety(
                     bytes,
                     contentType,
                     new MealIngredientsSafetyPrompt(
                         userData.getAllergies(),
                         userData.getDiseases()));
+
                 System.out.println(response);
+
                 updateCompletedScan(
                     ocrResponse,
                     scan,
                     response.foodSafetyResponse(),
                     response.nutritionFacts());
-            } catch (Exception e) {
-                System.out.println("meal check model error:");
-                scan.setStatus(ScanStatus.FAILED);
+
+                return;
             }
-            return;
-        }
 
-        List<String> ingredients = null;
+            List<String> ingredients = null;
 
-        if (ocrResponse.isNeedSearch()) {
-            // TODO: implement search method
-            try {
-                // ingredients = aiService.searchModelGemini(ocrResponse.getSearchQuery(),
-                // ocrResponse.getProductName());
-                // ingredients = aiService.searchForIngredients(ocrResponse.getSearchQuery());
-            } catch (Exception e) {
-                // e.printStackTrace();
-                // System.out.println("search model error:");
-                // System.out.println(e.getMessage());
-                // scan.setStatus(ScanStatus.FAILED);
-                // return;
+            if (ocrResponse.isNeedSearch()) {
+                // TODO: implement search method
+                // ingredients = aiService.searchModelGemini(...);
+                // ingredients = aiService.searchForIngredients(...);
+            } else {
+                ingredients = ocrResponse.getIngredients();
             }
-        } else {
-            ingredients = ocrResponse.getIngredients();
-        }
 
-        if (ingredients == null || ingredients.isEmpty()) {
-            System.out.println("Failed to parse ingredients.");
-            scan.setStatus(ScanStatus.FAILED);
-            return;
-            // throw new IngredientParsingException("Failed to parse ingredients.");
-        }
+            if (ingredients == null || ingredients.isEmpty())
+                throw new IngredientParsingException("Failed to parse ingredients.");
 
-        userData = userService.getUserAllergiesAndConditions(userId);
+            UserAllergiesAndConditionsResponse userData = userService
+                .getUserAllergiesAndConditions(userId);
 
-        FoodSafetyResponse result;
-
-        try {
-            result = aiService.checkSafety(
+            FoodSafetyResponse result = aiService.checkSafety(
                 new IngredientsSafetyPrompt(
                     ingredients,
                     userData.getAllergies(),
                     userData.getDiseases()));
 
-        } catch (Exception e) {
-            System.out.println("check safety model error:");
+            updateCompletedScan(ocrResponse, scan, result, ocrResponse.getNutritionFacts());
+
+        } catch (MealModelException e) {
+            System.out.println("Meal model error:");
             System.out.println(e.getMessage());
             scan.setStatus(ScanStatus.FAILED);
-            return;
-        }
+        } catch (OcrModelException e) {
+            System.out.println("OCR model error:");
+            System.out.println(e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
 
-        updateCompletedScan(ocrResponse, scan, result, ocrResponse.getNutritionFacts());
+        } catch (BusinessException e) {
+            System.out.println("Image is not relevant:");
+            System.out.println(e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
+
+        } catch (IngredientParsingException e) {
+            System.out.println("Failed to parse ingredients:");
+            System.out.println(e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
+
+        } catch (Exception e) {
+            System.out.println("Processing error:");
+            System.out.println(e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
+        }
     }
 
     private void updateCompletedScan(
@@ -171,6 +160,12 @@ public class ScanService {
         Scan scan,
         FoodSafetyResponse response,
         NutritionFactsDto nutritionFacts) {
+
+        System.out.println("--------------------------------------------------------");
+        System.out.println(response);
+        System.out.println(nutritionFacts);
+        System.out.println("--------------------------------------------------------");
+
         scan.setProductName(ocrResponse.getProductName());
         scan.setStatus(ScanStatus.COMPLETED);
         scan.setVerdict(response.verdict());

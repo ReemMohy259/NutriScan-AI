@@ -1,6 +1,7 @@
 package gov.iti.jets.NutriScan.service;
 
 import gov.iti.jets.NutriScan.dto.ai.*;
+import gov.iti.jets.NutriScan.exception.MealModelException;
 import gov.iti.jets.NutriScan.exception.OcrModelException;
 import gov.iti.jets.NutriScan.util.Prompts;
 import org.jspecify.annotations.Nullable;
@@ -79,7 +80,7 @@ public class AiService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw new OcrModelException("Failed to analyze the meal please try again later", e);
+            throw new MealModelException("Failed to analyze the meal please try again later");
         }
     }
 
