@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -51,8 +52,17 @@ public class ScanController {
 
         ScanSubmitResponse result = scanService.addNewScan(jwt, image);
 
-        // TODO: add ai processing
-        // scanService.processScan(image);
+        try {
+            byte[] bytes = image.getBytes();
+            scanService.processScan(
+                jwt,
+                result.scanId(),
+                bytes,
+                image.getContentType(),
+                image.getOriginalFilename());
+        } catch (IOException e) {
+            throw new InvalidImageException("Failed To Read Image");
+        }
 
         return ResponseEntity.accepted().body(result);
     }
