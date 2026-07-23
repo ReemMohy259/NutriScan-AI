@@ -30,15 +30,15 @@ public class UserAllergy {
     private Allergy allergy;
 
     @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass())
+    public final boolean equals(Object o) {
+        if (!(o instanceof UserAllergy that))
             return false;
-        UserAllergy that = (UserAllergy) o;
-        return Objects.equals(user, that.user) && Objects.equals(allergy, that.allergy);
+
+        return getId().equals(that.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(user, allergy);
+        return getId().hashCode();
     }
 }

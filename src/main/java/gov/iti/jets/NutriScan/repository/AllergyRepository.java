@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,6 +23,6 @@ public interface AllergyRepository extends JpaRepository<Allergy, Integer> {
     @Query("DELETE FROM Allergy a WHERE a.id = :id")
     int deleteAllergyById(@Param("id") Integer id);
 
-    Set<Allergy> findAllByIdIn(List<Integer> ids);
+    Set<Allergy> findAllByIdIn(Collection<Integer> ids);
 
 }

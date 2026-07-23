@@ -36,5 +36,7 @@ public record CurrentUserProfileResponse(UUID id,
 
     List<DiseaseResponse> diseases,
 
+    List<FamilyMemberResponse> familyMembers,
+
     Instant updatedAt) {
 }

@@ -30,15 +30,15 @@ public class UserDisease {
     private Disease disease;
 
     @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass())
+    public final boolean equals(Object o) {
+        if (!(o instanceof UserDisease that))
             return false;
-        UserDisease that = (UserDisease) o;
-        return Objects.equals(user, that.user) && Objects.equals(disease, that.disease);
+
+        return getId().equals(that.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(user, disease);
+        return getId().hashCode();
     }
 }

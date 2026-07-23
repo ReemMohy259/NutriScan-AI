@@ -1,12 +1,9 @@
 package gov.iti.jets.NutriScan.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.persistence.CascadeType;
 import lombok.*;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -46,6 +43,10 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserDisease> userDiseases = new HashSet<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 5)
+    private Set<FamilyMember> familyMembers = new HashSet<>();
+
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;
@@ -64,7 +65,6 @@ public class User {
     public void removeAllergy(UserAllergy userAllergy) {
         if (userAllergy != null) {
             userAllergies.remove(userAllergy);
-            userAllergy.setUser(null);
         }
     }
 
@@ -78,7 +78,19 @@ public class User {
     public void removeDiseases(UserDisease userDisease) {
         if (userDisease != null) {
             userDiseases.remove(userDisease);
-            userDisease.setUser(null);
+        }
+    }
+
+    public void addFamilyMember(FamilyMember member) {
+        if (member != null) {
+            familyMembers.add(member);
+            member.setUser(this);
+        }
+    }
+
+    public void removeFamilyMember(FamilyMember member) {
+        if (member != null) {
+            familyMembers.remove(member);
         }
     }
 }
