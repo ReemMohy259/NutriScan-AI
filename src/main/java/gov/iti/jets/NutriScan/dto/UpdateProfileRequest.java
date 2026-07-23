@@ -1,6 +1,7 @@
 package gov.iti.jets.NutriScan.dto;
 
 import gov.iti.jets.NutriScan.model.Gender;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -21,5 +22,7 @@ public record UpdateProfileRequest(@Size(max = 100) String firstName,
 
     List<@NotNull Integer> allergyIds,
 
-    List<@NotNull Integer> diseaseIds) {
+    List<@NotNull Integer> diseaseIds,
+
+    List<@Valid @NotNull FamilyMemberRequest> familyMembers) {
 }

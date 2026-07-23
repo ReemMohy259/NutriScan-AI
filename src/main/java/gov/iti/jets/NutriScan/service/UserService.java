@@ -6,6 +6,7 @@ import gov.iti.jets.NutriScan.exception.DiseaseNotFoundException;
 import gov.iti.jets.NutriScan.exception.UserNotFoundException;
 import gov.iti.jets.NutriScan.mapper.AllergyMapper;
 import gov.iti.jets.NutriScan.mapper.DiseaseMapper;
+import gov.iti.jets.NutriScan.mapper.FamilyMemberMapper;
 import gov.iti.jets.NutriScan.mapper.UserMapper;
 import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.AllergyRepository;
@@ -18,11 +19,13 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,13 +49,31 @@ public class UserService {
 
     private final DiseaseMapper diseaseMapper;
 
+    private final FamilyMemberMapper familyMemberMapper;
+
     public User findById(UUID id) {
         return userRepository.findById(id)
             .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
 
-    public User save(User user) {
-        return userRepository.save(user);
+    @Transactional
+    public void updateUserProfile(UpdateProfileRequest request, Jwt jwt) {
+
+        String userId = jwt.getClaim("sub");
+        UsersResource usersResource = keycloak.realm(realmName).users();
+        UserRepresentation user = usersResource.get(userId).toRepresentation();
+
+        if (request.firstName() != null) {
+            user.setFirstName(request.firstName());
+        }
+
+        if (request.lastName() != null) {
+            user.setLastName(request.lastName());
+        }
+
+        usersResource.get(userId).update(user);
+
+        update(UUID.fromString(userId), request);
     }
 
     public void update(UUID id, UpdateProfileRequest userDetails) {
@@ -74,97 +95,73 @@ public class UserService {
             user.setWeightKg(userDetails.weightKg());
         }
 
-        if (userDetails.allergyIds() != null && !userDetails.allergyIds().isEmpty()) {
-            Set<UserAllergy> newAllergies = buildUserAllergies(id, user, userDetails.allergyIds());
-            Set<UserAllergy> oldAllergies = new HashSet<>(user.getUserAllergies()); // defensive
-                                                                                    // copy
+        updateUserAllergies(user, userDetails.allergyIds());
 
-            for (UserAllergy allergy : oldAllergies) {
-                user.removeAllergy(allergy);
-            }
+        updateUserDiseases(user, userDetails.diseaseIds());
 
-            for (UserAllergy allergy : newAllergies) {
-                user.addAllergy(allergy);
-            }
-        } else if (userDetails.allergyIds() != null) {
-            Set<UserAllergy> oldAllergies = new HashSet<>(user.getUserAllergies()); // defensive
-                                                                                    // copy
+        updateFamilyMembers(user, userDetails.familyMembers());
+    }
 
-            for (UserAllergy allergy : oldAllergies) {
-                user.removeAllergy(allergy);
-            }
+    private void updateFamilyMembers(User user, List<FamilyMemberRequest> requests) {
+
+        if (requests == null) {
+            return;
         }
 
-        if (userDetails.diseaseIds() != null && !userDetails.diseaseIds().isEmpty()) {
-            Set<UserDisease> newDiseases = buildUserDiseases(id, user, userDetails.diseaseIds());
-            Set<UserDisease> oldDiseases = new HashSet<>(user.getUserDiseases()); // defensive copy
+        user.getFamilyMembers().clear();
 
-            for (UserDisease disease : oldDiseases) {
-                user.removeDiseases(disease);
-            }
-
-            for (UserDisease disease : newDiseases) {
-                user.addDiseases(disease);
-            }
-        } else if (userDetails.diseaseIds() != null) {
-            Set<UserDisease> oldDiseases = new HashSet<>(user.getUserDiseases()); // defensive copy
-
-            for (UserDisease disease : oldDiseases) {
-                user.removeDiseases(disease);
-            }
+        if (!requests.isEmpty()) {
+            buildFamilyMembers(user, requests).forEach(user::addFamilyMember);
         }
 
-        userRepository.save(user);
+        userRepository.flush();
     }
 
-    public User addAllergy(UUID userId, UserAllergy allergy) {
-        User user = findById(userId);
-        user.addAllergy(allergy);
-        return userRepository.save(user);
+    private void updateUserAllergies(User user, List<Integer> allergyIds) {
+
+        if (allergyIds == null) {
+            return;
+        }
+
+        user.getUserAllergies().clear();
+        userRepository.flush();
+
+        if (!allergyIds.isEmpty()) {
+            buildUserAllergies(user.getId(), user, allergyIds).forEach(user::addAllergy);
+        }
+
+        userRepository.flush();
     }
 
-    public User addDisease(UUID userId, UserDisease disease) {
-        User user = findById(userId);
-        user.addDiseases(disease);
-        return userRepository.save(user);
-    }
+    private void updateUserDiseases(User user, List<Integer> diseaseIds) {
 
-    public boolean existsById(UUID id) {
-        return userRepository.existsById(id);
+        if (diseaseIds == null) {
+            return;
+        }
+
+        user.getUserDiseases().clear();
+        userRepository.flush();
+
+        if (!diseaseIds.isEmpty()) {
+            buildUserDiseases(user.getId(), user, diseaseIds).forEach(user::addDiseases);
+        }
+
+        userRepository.flush();
     }
 
     public CurrentUserSummaryResponse getCurrentUserSummary(Jwt jwt) {
 
-        CurrentUserProfileResponse user = getFullUserFromToken(jwt);
+        CurrentUserProfileResponse user = getFullUser(jwt);
 
         return userMapper.toResponse(user);
     }
 
     public CurrentUserProfileResponse getCurrentUserProfile(Jwt jwt) {
 
-        return getFullUserFromToken(jwt);
+        return getFullUser(jwt);
     }
 
-    public void updateUserProfile(UpdateProfileRequest request, Jwt jwt) {
-
-        String userId = jwt.getClaim("sub");
-        UsersResource usersResource = keycloak.realm(realmName).users();
-        UserRepresentation user = usersResource.get(userId).toRepresentation();
-
-        if (request.firstName() != null) {
-            user.setFirstName(request.firstName());
-        }
-
-        if (request.lastName() != null) {
-            user.setLastName(request.lastName());
-        }
-
-        usersResource.get(userId).update(user);
-
-        update(UUID.fromString(userId), request);
-    }
-
-    private CurrentUserProfileResponse getFullUserFromToken(Jwt jwt) {
+    private CurrentUserProfileResponse getFullUser(Jwt jwt) {
 
         UUID userId = UUID.fromString(jwt.getClaim("sub"));
 
@@ -185,16 +182,26 @@ public class UserService {
             .gender(user.getGender())
             .heightCm(user.getHeightCm())
             .weightKg(user.getWeightKg())
+            .bmi(calculateBmi(user.getHeightCm(), user.getWeightKg()))
+            .tdee(
+                calculateTdee(
+                    user.getDateOfBirth(),
+                    user.getHeightCm(),
+                    user.getWeightKg(),
+                    user.getGender()))
             .allergies(
                 allergyMapper.toResponseList(
                     user.getUserAllergies().stream().map(UserAllergy::getAllergy).toList()))
             .diseases(
                 diseaseMapper.toResponseList(
                     user.getUserDiseases().stream().map(UserDisease::getDisease).toList()))
+            .familyMembers(
+                familyMemberMapper.toResponseList(user.getFamilyMembers().stream().toList()))
             .updatedAt(user.getUpdatedAt())
             .build();
     }
 
+    @Transactional
     public RegisterResponse register(UUID userId, RegisterRequest request) {
 
         User user = User.builder()
@@ -207,40 +214,172 @@ public class UserService {
 
         user.setUserAllergies(buildUserAllergies(userId, user, request.allergies()));
         user.setUserDiseases(buildUserDiseases(userId, user, request.diseases()));
+        user.setFamilyMembers(buildFamilyMembers(user, request.familyMembers()));
 
         userRepository.save(user);
 
         return new RegisterResponse("Registration successful", true);
     }
 
-    // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
-        return allergyIds.stream().map(id -> {
-            Allergy allergy = allergyRepository.findById(id)
-                .orElseThrow(
-                    () -> new AllergyNotFoundException("Allergy not found with ID: " + id));
+        Set<Allergy> allergies = allergyRepository.findAllByIdIn(allergyIds);
 
-            UserAllergy ua = new UserAllergy();
-            ua.setId(new UserAllergyId(userId, id));
-            ua.setUser(user);
-            ua.setAllergy(allergy);
+        Set<Integer> foundIds = allergies.stream().map(Allergy::getId).collect(Collectors.toSet());
 
-            return ua;
+        String notFoundIds = allergyIds.stream()
+            .filter(id -> !foundIds.contains(id))
+            .map(String::valueOf)
+            .collect(Collectors.joining(", "));
+
+        if (!notFoundIds.isEmpty()) {
+            throw new AllergyNotFoundException("Allergy not found with ids: " + notFoundIds);
+        }
+
+        // TODO: fix multiple select and insert statments (maybe batch them)
+        return allergies.stream().map(allergy -> {
+
+            UserAllergy userAllergy = new UserAllergy();
+            userAllergy.setId(new UserAllergyId(userId, allergy.getId()));
+            userAllergy.setUser(user);
+            userAllergy.setAllergy(allergy);
+
+            return userAllergy;
         }).collect(Collectors.toSet());
     }
 
     private Set<UserDisease> buildUserDiseases(UUID userId, User user, List<Integer> diseaseIds) {
-        return diseaseIds.stream().map(id -> {
-            Disease disease = diseaseRepository.findById(id)
-                .orElseThrow(
-                    () -> new DiseaseNotFoundException("Disease not found with ID: " + id));
+        Set<Disease> diseases = diseaseRepository.findAllByIdIn(diseaseIds);
 
-            UserDisease ud = new UserDisease();
-            ud.setId(new UserDiseaseId(userId, id));
-            ud.setUser(user);
-            ud.setDisease(disease);
+        Set<Integer> foundIds = diseases.stream().map(Disease::getId).collect(Collectors.toSet());
 
-            return ud;
+        String notFoundIds = diseaseIds.stream()
+            .filter(id -> !foundIds.contains(id))
+            .map(String::valueOf)
+            .collect(Collectors.joining(", "));
+
+        if (!notFoundIds.isEmpty()) {
+            throw new DiseaseNotFoundException("Disease not found with ids: " + notFoundIds);
+        }
+
+        // TODO: fix multiple select and insert statments (maybe batch them)
+        return diseases.stream().map(disease -> {
+
+            UserDisease userDisease = new UserDisease();
+            userDisease.setId(new UserDiseaseId(userId, disease.getId()));
+            userDisease.setUser(user);
+            userDisease.setDisease(disease);
+
+            return userDisease;
         }).collect(Collectors.toSet());
+    }
+
+    private Set<FamilyMember> buildFamilyMembers(
+        User user,
+        List<FamilyMemberRequest> familyMemberRequests) {
+
+        if (familyMemberRequests == null || familyMemberRequests.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        Set<Integer> allergyIds = familyMemberRequests.stream()
+            .filter(r -> r.allergyIds() != null)
+            .flatMap(r -> r.allergyIds().stream())
+            .collect(Collectors.toSet());
+
+        Set<Integer> diseaseIds = familyMemberRequests.stream()
+            .filter(r -> r.diseaseIds() != null)
+            .flatMap(r -> r.diseaseIds().stream())
+            .collect(Collectors.toSet());
+
+        Map<Integer, Allergy> allergiesById = allergyRepository.findAllByIdIn(allergyIds)
+            .stream()
+            .collect(Collectors.toMap(Allergy::getId, Function.identity()));
+
+        Map<Integer, Disease> diseasesById = diseaseRepository.findAllByIdIn(diseaseIds)
+            .stream()
+            .collect(Collectors.toMap(Disease::getId, Function.identity()));
+
+        Set<Integer> missingAllergyIds = new HashSet<>(allergyIds);
+        missingAllergyIds.removeAll(allergiesById.keySet());
+
+        if (!missingAllergyIds.isEmpty()) {
+            throw new AllergyNotFoundException(
+                "Allergy not found with ids: " + missingAllergyIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", ")));
+        }
+
+        Set<Integer> missingDiseaseIds = new HashSet<>(diseaseIds);
+        missingDiseaseIds.removeAll(diseasesById.keySet());
+
+        if (!missingDiseaseIds.isEmpty()) {
+            throw new DiseaseNotFoundException(
+                "Disease not found with ids: " + missingDiseaseIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", ")));
+        }
+
+        Set<FamilyMember> familyMembers = new HashSet<>();
+
+        for (FamilyMemberRequest memberRequest : familyMemberRequests) {
+
+            UUID familyMemberId = UUID.randomUUID();
+
+            FamilyMember familyMember = FamilyMember.builder()
+                .id(familyMemberId)
+                .name(memberRequest.name())
+                .user(user)
+                .allergies(new HashSet<>())
+                .diseases(new HashSet<>())
+                .build();
+
+            if (memberRequest.allergyIds() != null) {
+                for (Integer allergyId : memberRequest.allergyIds()) {
+
+                    FamilyMemberAllergy familyMemberAllergy = FamilyMemberAllergy.builder()
+                        .id(new FamilyMemberAllergyId(familyMemberId, allergyId))
+                        .familyMember(familyMember)
+                        .allergy(allergiesById.get(allergyId))
+                        .build();
+
+                    familyMember.getAllergies().add(familyMemberAllergy);
+                }
+            }
+
+            if (memberRequest.diseaseIds() != null) {
+                for (Integer diseaseId : memberRequest.diseaseIds()) {
+
+                    FamilyMemberDisease familyMemberDisease = FamilyMemberDisease.builder()
+                        .id(new FamilyMemberDiseaseId(familyMemberId, diseaseId))
+                        .familyMember(familyMember)
+                        .disease(diseasesById.get(diseaseId))
+                        .build();
+
+                    familyMember.getDiseases().add(familyMemberDisease);
+                }
+            }
+
+            familyMembers.add(familyMember);
+        }
+
+        return familyMembers;
+    }
+
+    private Double calculateBmi(BigDecimal heightInCm, BigDecimal weightInKg) {
+        return weightInKg.doubleValue() / Math.pow(heightInCm.doubleValue() / 100, 2);
+    }
+
+    private Double calculateTdee(
+        LocalDate userDob,
+        BigDecimal heightInCm,
+        BigDecimal weightInKg,
+        Gender userGender) {
+
+        long age = ChronoUnit.YEARS.between(userDob, LocalDate.now());
+
+        double bmr = (10 * weightInKg.doubleValue()) + (6.25 * heightInCm.doubleValue()) - (5 * age)
+            + (userGender.equals(Gender.MALE) ? 5 : -161);
+
+        return bmr * 1.2; // 1.2 resembles (Desk job, little to no intentional exercise).
     }
 }

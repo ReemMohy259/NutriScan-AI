@@ -14,6 +14,7 @@ import java.util.UUID;
 @Embeddable
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 @Builder
 public class UserDiseaseId implements Serializable {
     private static final long serialVersionUID = -1425412187205125420L;
@@ -25,4 +26,18 @@ public class UserDiseaseId implements Serializable {
     @Column(name = "disease_id", nullable = false)
     private Integer diseaseId;
 
+    @Override
+    public final boolean equals(Object o) {
+        if (!(o instanceof UserDiseaseId that))
+            return false;
+
+        return getUserId().equals(that.getUserId()) && getDiseaseId().equals(that.getDiseaseId());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getUserId().hashCode();
+        result = 31 * result + getDiseaseId().hashCode();
+        return result;
+    }
 }
