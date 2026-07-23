@@ -328,6 +328,7 @@ public class UserService {
             FamilyMember familyMember = FamilyMember.builder()
                 .id(familyMemberId)
                 .name(memberRequest.name())
+                .relation(memberRequest.relation())
                 .user(user)
                 .allergies(new HashSet<>())
                 .diseases(new HashSet<>())
