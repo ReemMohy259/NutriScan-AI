@@ -14,12 +14,13 @@ import org.mapstruct.Mapping;
 import java.util.List;
 import java.util.Set;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = NutritionFactMapper.class)
 public interface ScanMapper {
 
     @Mapping(source = "id", target = "scanId")
     @Mapping(source = "status", target = "status")
     @Mapping(target = "foodSafetyResponse", expression = "java(mapScanToFoodSafetyResponse(scan))")
+    @Mapping(source = "nutritionFact", target = "nutritionFacts")
     ScanResultResponse toResultResponse(Scan scan);
 
     @Mapping(source = "id", target = "scanId")
@@ -33,6 +34,7 @@ public interface ScanMapper {
         if (scan == null) {
             return null;
         }
+
         return new FoodSafetyResponse(
             scan.getVerdict(),
             mapScanFlaggedIngredientsToFlaggedIngredients(scan.getScanFlaggedIngredients()),
@@ -41,19 +43,23 @@ public interface ScanMapper {
 
     default List<FlaggedIngredient> mapScanFlaggedIngredientsToFlaggedIngredients(
         Set<ScanFlaggedIngredient> set) {
+
         if (set == null) {
             return List.of();
         }
+
         return set.stream().map(this::mapScanFlaggedIngredientToFlaggedIngredient).toList();
     }
 
     default FlaggedIngredient mapScanFlaggedIngredientToFlaggedIngredient(
         ScanFlaggedIngredient ingredient) {
+
         if (ingredient == null) {
             return null;
         }
 
         FlaggedIngredient.FlagType flagType = null;
+
         if (ingredient.getType() != null) {
             if ("CHRONIC_CONDITION".equalsIgnoreCase(ingredient.getType())
                 || "CONDITION".equalsIgnoreCase(ingredient.getType())) {
@@ -102,6 +108,7 @@ public interface ScanMapper {
         if (status == null) {
             return null;
         }
+
         try {
             return ScanStatus.valueOf(status);
         } catch (IllegalArgumentException e) {

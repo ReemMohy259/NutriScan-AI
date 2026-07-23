@@ -27,4 +27,10 @@ public class OcrResponseDto {
 
     @JsonProperty("search_query")
     private String searchQuery;
+
+    @JsonProperty("is_meal")
+    private boolean isMeal;
+
+    @JsonProperty("nutrition_facts")
+    private NutritionFactsDto nutritionFacts;
 }
