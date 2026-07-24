@@ -38,6 +38,10 @@ public class DailyTracking {
     private LocalDate date;
 
     @Builder.Default
+    @Column(name = "target_water_cnt", nullable = false)
+    private Integer targetWaterCnt = 8;
+
+    @Builder.Default
     @Column(name = "water_cnt", nullable = false)
     private Integer waterCnt = 0;
 

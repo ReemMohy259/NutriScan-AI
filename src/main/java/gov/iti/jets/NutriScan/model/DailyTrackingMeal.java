@@ -33,4 +33,16 @@ public class DailyTrackingMeal {
 
     @Column(name = "meal_cnt", nullable = false)
     private Integer mealCnt;
+
+    @Override
+    public final boolean equals(Object o) {
+        if (!(o instanceof DailyTrackingMeal that)) return false;
+
+        return getId().equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getId().hashCode();
+    }
 }

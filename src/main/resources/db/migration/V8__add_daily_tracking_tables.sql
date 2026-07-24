@@ -3,6 +3,7 @@ CREATE TABLE daily_tracking
     id       SERIAL PRIMARY KEY,
     user_id  UUID    NOT NULL,
     date     DATE    NOT NULL,
+    target_water_cnt INTEGER NOT NULL DEFAULT 8,
     water_cnt INTEGER NOT NULL DEFAULT 0,
     steps_cnt INTEGER,
 
