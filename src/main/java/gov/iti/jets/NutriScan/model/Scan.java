@@ -67,6 +67,10 @@ public class Scan {
     @JoinColumn(name = "scan_id")
     private Set<ScanFlaggedIngredient> scanFlaggedIngredients = new LinkedHashSet<>();
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean favorite = false;
+
     public void addFlaggedIngredient(ScanFlaggedIngredient scanFlaggedIngredient) {
         if (scanFlaggedIngredient != null) {
             scanFlaggedIngredients.add(scanFlaggedIngredient);
