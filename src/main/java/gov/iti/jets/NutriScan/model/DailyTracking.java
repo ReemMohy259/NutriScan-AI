@@ -13,13 +13,8 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(
-        name = "daily_tracking",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_daily_user_date",
-                columnNames = {"user_id", "date"}
-        )
-)
+@Table(name = "daily_tracking", uniqueConstraints = @UniqueConstraint(name = "uk_daily_user_date", columnNames = {
+        "user_id", "date"}))
 public class DailyTracking {
 
     @Id
@@ -27,11 +22,7 @@ public class DailyTracking {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "user_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_users_daily")
-    )
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_users_daily"))
     private User user;
 
     @Column(nullable = false)
@@ -45,15 +36,12 @@ public class DailyTracking {
     @Column(name = "water_cnt", nullable = false)
     private Integer waterCnt = 0;
 
+    @Builder.Default
     @Column(name = "steps_cnt")
-    private Integer stepsCnt;
+    private Integer stepsCnt = 0;
 
     @Builder.Default
-    @OneToMany(
-            mappedBy = "dailyTracking",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "dailyTracking", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<DailyTrackingMeal> meals = new HashSet<>();
 
     public void addMeal(DailyTrackingMeal meal) {

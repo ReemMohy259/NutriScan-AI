@@ -5,7 +5,7 @@ CREATE TABLE daily_tracking
     date     DATE    NOT NULL,
     target_water_cnt INTEGER NOT NULL DEFAULT 8,
     water_cnt INTEGER NOT NULL DEFAULT 0,
-    steps_cnt INTEGER,
+    steps_cnt INTEGER DEFAULT 0,
 
     CONSTRAINT uk_daily_user_date UNIQUE (user_id, date),
 

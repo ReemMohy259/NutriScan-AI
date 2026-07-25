@@ -17,18 +17,12 @@ public class DailyTrackingMeal {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("dailyId")
-    @JoinColumn(
-            name = "daily_id",
-            foreignKey = @ForeignKey(name = "fk_daily_daily_meals")
-    )
+    @JoinColumn(name = "daily_id", foreignKey = @ForeignKey(name = "fk_daily_daily_meals"))
     private DailyTracking dailyTracking;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("scanId")
-    @JoinColumn(
-            name = "scan_id",
-            foreignKey = @ForeignKey(name = "fk_scans_daily_meals")
-    )
+    @JoinColumn(name = "scan_id", foreignKey = @ForeignKey(name = "fk_scans_daily_meals"))
     private Scan scan;
 
     @Column(name = "meal_cnt", nullable = false)
@@ -36,7 +30,8 @@ public class DailyTrackingMeal {
 
     @Override
     public final boolean equals(Object o) {
-        if (!(o instanceof DailyTrackingMeal that)) return false;
+        if (!(o instanceof DailyTrackingMeal that))
+            return false;
 
         return getId().equals(that.getId());
     }
