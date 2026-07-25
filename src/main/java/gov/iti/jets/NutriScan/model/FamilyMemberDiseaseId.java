@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Embeddable
@@ -11,7 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Data
 @Builder
-public class FamilyMemberDiseaseId {
+public class FamilyMemberDiseaseId implements Serializable {
 
     @Column(name = "family_member_id", nullable = false)
     private UUID familyMemberId;
