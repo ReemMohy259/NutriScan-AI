@@ -37,10 +37,11 @@ public class TavilySearchTool {
             query,
             3,
             true,
-            false,
+            true,
             false,
             List.of(),
-            List.of());
+            List.of(),
+                "egypt");
 
         TavilyResponse response = client.post()
             .uri(url)
@@ -60,11 +61,21 @@ public class TavilySearchTool {
 
         for (TavilyResponse.SearchResult r : response.results()) {
 
-            sb.append("Title: ").append(r.title()).append("\n");
+            sb.append("Title: ")
+                    .append(r.title())
+                    .append("\n");
 
-            sb.append("Content: ").append(r.content()).append("\n");
+            sb.append("URL: ")
+                    .append(r.url())
+                    .append("\n");
 
-            sb.append("Source: ").append(r.url()).append("\n\n");
+            sb.append("Content:\n")
+                    .append(r.content())
+                    .append("\n");
+
+            sb.append("Raw Page Content:\n")
+                    .append(r.rawContent())
+                    .append("\n\n");
         }
 
         System.out.println("tool result: " + sb.toString());

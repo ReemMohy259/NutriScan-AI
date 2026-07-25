@@ -2,8 +2,15 @@ package gov.iti.jets.NutriScan.dto.ai;
 
 import java.util.List;
 
-public record TavilyResponse(String answer, List<SearchResult> results) {
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-    public record SearchResult(String title, String url, String content, double score) {
-    }
+public record TavilyResponse(
+        String answer,
+        List<SearchResult> results
+) {
+
+    public record SearchResult(String title, String url, String content,double score,
+            @JsonProperty("raw_content")
+            String rawContent
+    ) {}
 }

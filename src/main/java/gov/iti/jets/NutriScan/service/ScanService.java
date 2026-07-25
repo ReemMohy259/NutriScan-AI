@@ -111,9 +111,13 @@ public class ScanService {
             List<String> ingredients = null;
 
             if (ocrResponse.isNeedSearch()) {
-                ingredients = aiService.searchForIngredientsModel(
+                SearchModelResponseDto response = aiService.searchForIngredientsModel(
                     ocrResponse.getSearchQuery(),
                     ocrResponse.getProductName());
+                ingredients = response.ingredients();
+                if(response.nutritionFacts() != null && !response.nutritionFactsAreEmpty())
+                    ocrResponse.setNutritionFacts(response.nutritionFacts());
+
             } else {
                 ingredients = ocrResponse.getIngredients();
             }

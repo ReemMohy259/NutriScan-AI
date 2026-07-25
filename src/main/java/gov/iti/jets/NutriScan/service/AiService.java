@@ -111,26 +111,22 @@ public class AiService {
         }
     }
 
-    public List<String> searchForIngredientsModel(String query, String productName) {
+    public SearchModelResponseDto searchForIngredientsModel(String query, String productName) {
+
+        String webResult = tavilySearchTool.search(query);
 
         String promptText = String.format(
-            "get the ingredients of product: %s and the recommended search query is %s",
+            "get the ingredients of product: %s and the recommended search query is %s\n\n\n web result is: %s",
             productName,
-            query);
+            query, webResult);
 
-        // var options =
-        // OpenAiChatOptions.builder().parallelToolCalls(false).maxTokens(5000);
-
-        String response = chatClient.prompt()
+        SearchModelResponseDto response = chatClient.prompt()
             .system(Prompts.SEARCH_MODEL_SYSTEM)
-            // .options(options)
             .user(promptText)
-            .tools(tavilySearchTool)
             .call()
-            .content();
-        // .entity(new ParameterizedTypeReference<List<String>>() {});
+            .entity(SearchModelResponseDto.class);
 
-        System.out.println("search Response: " + response);
-        return List.of(response);
+        System.out.println("search Model Response: " + response);
+        return response;
     }
 }

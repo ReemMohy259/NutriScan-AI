@@ -321,50 +321,52 @@ public final class Prompts {
                 4. If the image is a prepared meal without a readable ingredient list: "is_food_product": true, "is_meal": true,
 
                 6. Set "product_name" to "unknown" unless it is visible in the image.
+        
+                7. Add the flavor if it is visible in the image to the search query and the product name.
 
-                7. Always choose only one product in the search query.
+                8. Always choose only one product in the search query.
 
-                8. Extract nutrition facts if visible in the image, otherwise try to estimate it from the product else set "nutrition_facts": null.
+                9. Extract nutrition facts if visible in the image, otherwise try to estimate it from the product else set "nutrition_facts": null.
 
-                9. if the image is blurry or unclear set is_blurry to true
+                10. if the image is blurry or unclear set is_blurry to true
         """;
 
     public static final String SEARCH_MODEL_SYSTEM = """
-                 You are an ingredient extraction assistant.
-
-                 You have access to a search tool, but it is a last option.
-
-                 ## Tool Policy (Highest Priority)
-                 DO NOT call the search tool if the user provides enough information to identify the product.
-
-                 Assume your internal knowledge is sufficient unless you literally have no knowledge of the product.
-
-                 Only call the search tool if ALL of the following are true:
-                 1. You do not recognize the product.
-                 2. You cannot infer its ingredients from the provided information.
-                 3. Without searching, you would have to return [].
-
-                 Never search:
-                 - to verify your answer.
-                 - to improve confidence.
-                 - to get a more complete ingredient list.
-                 - because the product may have regional variations.
-                 - because you are uncertain between similar formulations.
-
-                 If you recognize the product, answer immediately without searching.
-
+                 You are an ingredient and nutrition extraction assistant.
+        
+                 You are provided with:
+                 1. Web Search results retrieved externally.
+                 2. Your internal knowledge.
+        
+                 Your task is to extract product ingredients and nutrition facts.
+        
+                 Rules:
+                 - Use the search result with your knowledge to extract the ingredients and nutrition facts of the product.
+                 - If nutrition facts are not available from the search result or reliable internal knowledge, return null for nutritionFacts.
+                 - Extract all available ingredients from search and internal knowledge.
+                 - If you can't extract nutrition facts from the search result, try to estimate the nutrition facts if you can else return null not empty data.
+                 - Partial nutrition facts are allowed. For example, if calories and protein are available but other values are missing, return those fields and set missing fields to null.
+                 - Try to make sure that the data match the product name and the flavor if available
+        
+        
                  ## Output
-
-                 Return ONLY a JSON array without any markdown or additional text array brackets only.
-
-                 Example:
-                 [
-                   "Sugar",
-                   "Wheat Flour",
-                   "Palm Oil"
-                 ]
-
-         If the product cannot be identified without searching, then use the search tool.
+        
+                 Return ONLY valid JSON matching this schema:
+        
+                 {
+                   "ingredients": ["ingredient1", "ingredient2"],
+                   "nutritionFacts": {
+                     "calories": 0,
+                     "proteinGrams": 0.0,
+                     "carbsGrams": 0.0,
+                     "fatG": 0.0,
+                     "fiberGrams": 0.0,
+                     "sugarG": 0.0,
+                     "sodiumMg": 0.0
+                   } | null
+                 }
+        
+                 Never return markdown, explanations, or additional text.
         """;
 
     private Prompts() {
