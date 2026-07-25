@@ -69,6 +69,8 @@ public class ScanService {
         @Nullable String contentType,
         @Nullable String originalFilename) {
 
+        long startTime = System.nanoTime();
+
         UUID userId = UUID.fromString(jwt.getSubject());
 
         Scan scan = scanRepository.findById(scanId)
@@ -97,6 +99,10 @@ public class ScanService {
                         userData.getDiseases()));
 
                 System.out.println(response);
+                long endTime = System.nanoTime();
+                long durationInMilliseconds = (endTime - startTime) / 1_000_000;
+                System.out.println("Execution time for ai flow: " + durationInMilliseconds + " ms");
+                System.out.println("--------------------------------------------------------");
 
                 updateCompletedScan(
                     ocrResponse,
@@ -115,7 +121,7 @@ public class ScanService {
                     ocrResponse.getSearchQuery(),
                     ocrResponse.getProductName());
                 ingredients = response.ingredients();
-                if(response.nutritionFacts() != null && !response.nutritionFactsAreEmpty())
+                if (response.nutritionFacts() != null && !response.nutritionFactsAreEmpty())
                     ocrResponse.setNutritionFacts(response.nutritionFacts());
 
             } else {
@@ -136,6 +142,11 @@ public class ScanService {
 
             updateCompletedScan(ocrResponse, scan, result, ocrResponse.getNutritionFacts(), userId);
 
+            long endTime = System.nanoTime();
+            long durationInMilliseconds = (endTime - startTime) / 1_000_000;
+
+            System.out.println("Execution time for ai flow: " + durationInMilliseconds + " ms");
+            System.out.println("--------------------------------------------------------");
         } catch (MealModelException e) {
             System.out.println("Meal model error:");
             System.out.println(e.getMessage());

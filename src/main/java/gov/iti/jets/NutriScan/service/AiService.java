@@ -118,7 +118,8 @@ public class AiService {
         String promptText = String.format(
             "get the ingredients of product: %s and the recommended search query is %s\n\n\n web result is: %s",
             productName,
-            query, webResult);
+            query,
+            webResult);
 
         SearchModelResponseDto response = chatClient.prompt()
             .system(Prompts.SEARCH_MODEL_SYSTEM)
