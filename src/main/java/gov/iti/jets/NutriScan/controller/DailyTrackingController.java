@@ -68,10 +68,10 @@ public class DailyTrackingController {
 
     @PutMapping("/{date}/meals/{scanId}")
     public DailyTrackingMealResponse updateMeal(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @PathVariable UUID scanId,
-            @Valid @RequestBody UpdateMealRequest request) {
+        @AuthenticationPrincipal Jwt jwt,
+        @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+        @PathVariable UUID scanId,
+        @Valid @RequestBody UpdateMealRequest request) {
         return dailyTrackingService.updateMeal(jwt, date, scanId, request.mealCnt());
     }
 

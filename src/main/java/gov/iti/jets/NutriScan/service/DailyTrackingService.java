@@ -1,27 +1,18 @@
 package gov.iti.jets.NutriScan.service;
 
-import gov.iti.jets.NutriScan.dto.DailyTrackingMealRequest;
-import gov.iti.jets.NutriScan.dto.DailyTrackingMealResponse;
-import gov.iti.jets.NutriScan.dto.DailyTrackingRequest;
-import gov.iti.jets.NutriScan.dto.DailyTrackingResponse;
-import gov.iti.jets.NutriScan.dto.DailyTrackingSummaryResponse;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.exception.DailyTrackingMealNotFoundException;
 import gov.iti.jets.NutriScan.exception.DailyTrackingNotFoundException;
 import gov.iti.jets.NutriScan.exception.ScanNotFoundException;
 import gov.iti.jets.NutriScan.mapper.DailyTrackingMapper;
 import gov.iti.jets.NutriScan.mapper.DailyTrackingMealMapper;
-import gov.iti.jets.NutriScan.model.DailyTracking;
-import gov.iti.jets.NutriScan.model.DailyTrackingMeal;
-import gov.iti.jets.NutriScan.model.DailyTrackingMealId;
-import gov.iti.jets.NutriScan.model.Scan;
-import gov.iti.jets.NutriScan.model.User;
+import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.DailyTrackingMealRepository;
 import gov.iti.jets.NutriScan.repository.DailyTrackingRepository;
 import gov.iti.jets.NutriScan.repository.ScanRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -107,17 +98,13 @@ public class DailyTrackingService {
         DailyTrackingMealRequest request) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        DailyTracking dailyTracking = dailyTrackingRepository.findByUserIdAndDate(userId, date)
-            .orElseGet(() -> createDailyTracking(userId, date));
-
         // Verify scan exists and belongs to user
-        Scan scan = scanRepository.findById(request.scanId())
+        Scan scan = scanRepository.findByIdAndUserId(request.scanId(), userId)
             .orElseThrow(
                 () -> new ScanNotFoundException("Scan not found with id: " + request.scanId()));
 
-        if (!scan.getUser().getId().equals(userId)) {
-            throw new ScanNotFoundException("Scan not found with id: " + request.scanId());
-        }
+        DailyTracking dailyTracking = dailyTrackingRepository.findByUserIdAndDate(userId, date)
+            .orElseGet(() -> createDailyTracking(userId, date));
 
         // Check if meal already exists
         if (dailyTrackingMealRepository
@@ -146,16 +133,10 @@ public class DailyTrackingService {
         Integer mealCnt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        DailyTracking dailyTracking = dailyTrackingRepository.findByUserIdAndDate(userId, date)
-            .orElseThrow(
-                () -> new DailyTrackingNotFoundException(
-                    "Daily tracking not found for date: " + date));
-
         DailyTrackingMeal meal = dailyTrackingMealRepository
-            .findByIdDailyIdAndIdScanId(dailyTracking.getId(), scanId)
+            .findMealWithScansByUserIdAndDateAndScanId(userId, date, scanId)
             .orElseThrow(
                 () -> new DailyTrackingMealNotFoundException("Meal not found for scan: " + scanId));
-
         meal.setMealCnt(mealCnt);
 
         return dailyTrackingMealMapper.toResponse(meal);
@@ -165,29 +146,14 @@ public class DailyTrackingService {
     public void removeMeal(Jwt jwt, LocalDate date, UUID scanId) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        DailyTracking dailyTracking = dailyTrackingRepository.findByUserIdAndDate(userId, date)
-            .orElseThrow(
-                () -> new DailyTrackingNotFoundException(
-                    "Daily tracking not found for date: " + date));
-
-        DailyTrackingMeal meal = dailyTrackingMealRepository
-            .findByIdDailyIdAndIdScanId(dailyTracking.getId(), scanId)
-            .orElseThrow(
-                () -> new DailyTrackingMealNotFoundException("Meal not found for scan: " + scanId));
-
-        dailyTrackingMealRepository.delete(meal);
+        dailyTrackingMealRepository.deleteByUserIdAndDateAndScanId(userId, date, scanId);
     }
 
     @Transactional
     public void deleteTracking(Jwt jwt, LocalDate date) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        DailyTracking dailyTracking = dailyTrackingRepository.findByUserIdAndDate(userId, date)
-            .orElseThrow(
-                () -> new DailyTrackingNotFoundException(
-                    "Daily tracking not found for date: " + date));
-
-        dailyTrackingRepository.delete(dailyTracking);
+        dailyTrackingRepository.deleteByUserIdAndDate(userId, date);
     }
 
     private DailyTracking createDailyTracking(UUID userId, LocalDate date) {
