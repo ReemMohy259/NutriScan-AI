@@ -255,6 +255,8 @@ public final class Prompts {
 
                 If the product cannot be uniquely identified And doesn't show ingredient list, the image is not relevant.
 
+                if the image is blurry or unclear set is_blurry to true
+
                 ---
 
                 ### Step 3: Determine whether nutrition facts are visible.
@@ -275,6 +277,7 @@ public final class Prompts {
                   "is_meal": boolean,
                   "is_relevant": boolean,
                   "need_search": boolean,
+                  "is_blurry": boolean,
                   "ingredients": [
                     "ingredient 1",
                     "ingredient 2"
@@ -313,7 +316,7 @@ public final class Prompts {
                   - "need_search": true
                   - "is_relevant": true
                 - Leave "ingredients" empty.
-                - Generate one optimized search query ending with "ingredients".
+                - Generate one optimized search query ending with "ingredients" if there is specific type or flavor add it to search query.
 
                 4. If the image is a prepared meal without a readable ingredient list: "is_food_product": true, "is_meal": true,
 
@@ -321,7 +324,9 @@ public final class Prompts {
 
                 7. Always choose only one product in the search query.
 
-                8. Extract nutrition facts if visible in the image, otherwise set "nutrition_facts": null.
+                8. Extract nutrition facts if visible in the image, otherwise try to estimate it from the product else set "nutrition_facts": null.
+
+                9. if the image is blurry or unclear set is_blurry to true
         """;
 
     public static final String SEARCH_MODEL_SYSTEM = """

@@ -82,6 +82,9 @@ public class ScanService {
             if (!ocrResponse.isRelevant() || !ocrResponse.isFoodProduct())
                 throw new BusinessException("Image is not relevant");
 
+            if (ocrResponse.isBlurry())
+                throw new ImageTooBlurry("Image is blurry please take a clearer picture");
+
             if (ocrResponse.isMeal()) {
                 UserAllergiesAndConditionsResponse userData = userService
                     .getUserAllergiesAndConditions(userId);
