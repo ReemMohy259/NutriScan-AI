@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 @Embeddable
@@ -14,7 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Data
 @Builder
-public class FamilyMemberAllergyId {
+public class FamilyMemberAllergyId implements Serializable {
 
     @Column(name = "family_member_id", nullable = false)
     private UUID familyMemberId;
