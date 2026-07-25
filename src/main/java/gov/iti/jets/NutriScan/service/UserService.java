@@ -385,6 +385,11 @@ public class UserService {
     }
 
     private Double calculateBmi(BigDecimal heightInCm, BigDecimal weightInKg) {
+
+        if (heightInCm == null || weightInKg == null) {
+            return null;
+        }
+
         return weightInKg.doubleValue() / Math.pow(heightInCm.doubleValue() / 100, 2);
     }
 
@@ -393,6 +398,10 @@ public class UserService {
         BigDecimal heightInCm,
         BigDecimal weightInKg,
         Gender userGender) {
+
+        if (heightInCm == null || weightInKg == null || userDob == null || userGender == null) {
+            return null;
+        }
 
         long age = ChronoUnit.YEARS.between(userDob, LocalDate.now());
 
