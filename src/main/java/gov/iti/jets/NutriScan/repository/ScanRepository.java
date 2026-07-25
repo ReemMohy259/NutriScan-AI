@@ -37,4 +37,7 @@ public interface ScanRepository extends JpaRepository<Scan, UUID> {
         order by s.scannedAt desc
         """)
     Page<ScanSummaryResponse> findSummaryByUserId(@Param("userId") UUID userId, Pageable pageable);
+
+    @Query("select s from Scan s where s.id = :id and s.user.id = :userId")
+    Optional<Scan> findByIdAndUserId(UUID id, UUID userId);
 }

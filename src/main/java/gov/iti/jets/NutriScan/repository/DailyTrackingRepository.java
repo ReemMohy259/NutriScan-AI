@@ -39,4 +39,6 @@ public interface DailyTrackingRepository extends JpaRepository<DailyTracking, In
     Optional<DailyTracking> findByIdWithMealsAndScans(
         @Param("id") Integer id,
         @Param("userId") UUID userId);
+
+    void deleteByUserIdAndDate(UUID userId, LocalDate date);
 }
