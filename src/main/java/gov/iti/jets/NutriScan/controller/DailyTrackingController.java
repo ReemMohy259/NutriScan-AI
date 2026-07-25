@@ -1,10 +1,6 @@
 package gov.iti.jets.NutriScan.controller;
 
-import gov.iti.jets.NutriScan.dto.DailyTrackingMealRequest;
-import gov.iti.jets.NutriScan.dto.DailyTrackingMealResponse;
-import gov.iti.jets.NutriScan.dto.DailyTrackingRequest;
-import gov.iti.jets.NutriScan.dto.DailyTrackingResponse;
-import gov.iti.jets.NutriScan.dto.DailyTrackingSummaryResponse;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.service.DailyTrackingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -72,11 +68,11 @@ public class DailyTrackingController {
 
     @PutMapping("/{date}/meals/{scanId}")
     public DailyTrackingMealResponse updateMeal(
-        @AuthenticationPrincipal Jwt jwt,
-        @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-        @PathVariable UUID scanId,
-        @RequestParam @Min(value = 1, message = "Meal count must be at least 1") Integer mealCnt) {
-        return dailyTrackingService.updateMeal(jwt, date, scanId, mealCnt);
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @PathVariable UUID scanId,
+            @Valid @RequestBody UpdateMealRequest request) {
+        return dailyTrackingService.updateMeal(jwt, date, scanId, request.mealCnt());
     }
 
     @DeleteMapping("/{date}/meals/{scanId}")
