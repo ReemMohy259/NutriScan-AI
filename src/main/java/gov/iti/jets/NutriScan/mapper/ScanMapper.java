@@ -27,8 +27,7 @@ public interface ScanMapper {
     @Mapping(source = "status", target = "status")
     ScanSubmitResponse toSubmitResponse(Scan scan);
 
-    @Mapping(source = "id", target = "scanId")
-    ScanSummaryResponse toSummaryResponse(Scan scan);
+
 
     default FoodSafetyResponse mapScanToFoodSafetyResponse(Scan scan) {
         if (scan == null) {
