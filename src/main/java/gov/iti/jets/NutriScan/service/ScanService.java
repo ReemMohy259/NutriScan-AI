@@ -235,6 +235,13 @@ public class ScanService {
         return scanRepository.findSummaryByUserId(userId, pageable);
     }
 
+    // Careful for N+1 queries
+    public Page<ScanSummaryResponse> findFavoritesByUserId(Jwt jwt, Pageable pageable) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        return scanRepository.findFavoritesByUserId(userId, pageable);
+    }
+
     public void delete(UUID id) {
         scanRepository.deleteById(id);
     }
