@@ -61,18 +61,23 @@ public class UserService {
     public void updateUserProfile(UpdateProfileRequest request, Jwt jwt) {
 
         String userId = jwt.getClaim("sub");
-        UsersResource usersResource = keycloak.realm(realmName).users();
-        UserRepresentation user = usersResource.get(userId).toRepresentation();
+        boolean isFirstNameUpdated = request.firstName() != null && !request.firstName().isBlank();
+        boolean isLastNameUpdated = request.lastName() != null && !request.lastName().isBlank();
 
-        if (request.firstName() != null) {
-            user.setFirstName(request.firstName());
+        if (isFirstNameUpdated || isLastNameUpdated) {
+            UsersResource usersResource = keycloak.realm(realmName).users();
+            UserRepresentation user = usersResource.get(userId).toRepresentation();
+
+            if (isFirstNameUpdated) {
+                user.setFirstName(request.firstName());
+            }
+
+            if (isLastNameUpdated) {
+                user.setLastName(request.lastName());
+            }
+
+            usersResource.get(userId).update(user);
         }
-
-        if (request.lastName() != null) {
-            user.setLastName(request.lastName());
-        }
-
-        usersResource.get(userId).update(user);
 
         update(UUID.fromString(userId), request);
     }
