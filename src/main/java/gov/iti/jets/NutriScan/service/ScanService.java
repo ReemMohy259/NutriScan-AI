@@ -105,7 +105,7 @@ public class ScanService {
                 return;
             }
 
-            List<String> ingredients = null;
+            List<String> ingredients;
 
             if (ocrResponse.isNeedSearch()) {
                 ingredients = aiService.searchForIngredientsModel(
@@ -207,6 +207,19 @@ public class ScanService {
             .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.COMPLETED));
     }
 
+    @Transactional
+    public ScanResultResponse updateScan(UUID scanId, String name, Boolean isFavorite, Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Scan scan = scanRepository.findByIdWithDetails(scanId, userId)
+            .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
+        if (name != null)
+            scan.setProductName(name);
+
+        if (isFavorite != null)
+            scan.setFavorite(isFavorite);
+
+        return scanMapper.toResultResponse(scan);
+    }
     public ScanResultResponse findById(UUID id, Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 

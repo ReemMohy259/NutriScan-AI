@@ -3,10 +3,12 @@ package gov.iti.jets.NutriScan.controller;
 import gov.iti.jets.NutriScan.dto.ScanResultResponse;
 import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
 import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
+import gov.iti.jets.NutriScan.dto.UpdateScanDto;
 import gov.iti.jets.NutriScan.exception.ImageTooLargeException;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
 import gov.iti.jets.NutriScan.exception.NoImageProvidedException;
 import gov.iti.jets.NutriScan.service.ScanService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -66,11 +68,23 @@ public class ScanController {
 
         return ResponseEntity.accepted().body(result);
     }
+
     @GetMapping("/{scanId}")
     public ScanResultResponse getScanResult(
         @AuthenticationPrincipal Jwt jwt,
         @PathVariable UUID scanId) {
         return scanService.findById(scanId, jwt);
+    }
+
+    @PatchMapping("/{scanId}")
+    public ResponseEntity<ScanResultResponse> updateScanName(
+        @AuthenticationPrincipal Jwt jwt,
+        @PathVariable UUID scanId,
+        @Valid @RequestBody UpdateScanDto request) {
+
+        ScanResultResponse scan = scanService
+            .updateScan(scanId, request.name(), request.favorite(), jwt);
+        return ResponseEntity.ok().body(scan);
     }
 
     @GetMapping
