@@ -30,9 +30,13 @@ public interface ScanRepository extends JpaRepository<Scan, UUID> {
             s.id,
             s.imageUrl,
             s.verdict,
-            s.scannedAt
+            s.scannedAt,
+            s.productName,
+            nf.calories,
+                    s.status
         )
-        from Scan s
+            from Scan s
+                left join s.nutritionFact nf
         where s.user.id = :userId
         order by s.scannedAt desc
         """)
@@ -43,9 +47,13 @@ public interface ScanRepository extends JpaRepository<Scan, UUID> {
             s.id,
             s.imageUrl,
             s.verdict,
-            s.scannedAt
+            s.scannedAt,
+            s.productName,
+            nf.calories,
+                    s.status
         )
-        from Scan s
+            from Scan s
+                left join s.nutritionFact nf
         where s.user.id = :userId and s.favorite=true
         order by s.scannedAt desc
         """)
