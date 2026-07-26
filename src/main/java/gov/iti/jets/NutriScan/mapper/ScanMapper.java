@@ -2,7 +2,6 @@ package gov.iti.jets.NutriScan.mapper;
 
 import gov.iti.jets.NutriScan.dto.ScanResultResponse;
 import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
-import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
 import gov.iti.jets.NutriScan.dto.ai.FlaggedIngredient;
 import gov.iti.jets.NutriScan.dto.ai.FoodSafetyResponse;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
@@ -26,8 +25,6 @@ public interface ScanMapper {
     @Mapping(source = "id", target = "scanId")
     @Mapping(source = "status", target = "status")
     ScanSubmitResponse toSubmitResponse(Scan scan);
-
-
 
     default FoodSafetyResponse mapScanToFoodSafetyResponse(Scan scan) {
         if (scan == null) {

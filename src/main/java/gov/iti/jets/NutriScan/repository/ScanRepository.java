@@ -32,7 +32,8 @@ public interface ScanRepository extends JpaRepository<Scan, UUID> {
             s.verdict,
             s.scannedAt,
             s.productName,
-            nf.calories
+            nf.calories,
+                    s.status
         )
             from Scan s
                 left join s.nutritionFact nf
@@ -48,7 +49,8 @@ public interface ScanRepository extends JpaRepository<Scan, UUID> {
             s.verdict,
             s.scannedAt,
             s.productName,
-            nf.calories
+            nf.calories,
+                    s.status
         )
             from Scan s
                 left join s.nutritionFact nf
