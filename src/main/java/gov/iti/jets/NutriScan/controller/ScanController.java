@@ -97,4 +97,14 @@ public class ScanController {
 
         return scanService.findByUserId(jwt, validated);
     }
+    @GetMapping("/favorites")
+    public Page<ScanSummaryResponse> getFavoriteScans(
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be greater than or equal to 0") int page,
+        @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") @RequestParam(defaultValue = "20") int size) {
+
+        Pageable validated = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return scanService.findFavoritesByUserId(jwt, validated);
+    }
 }
