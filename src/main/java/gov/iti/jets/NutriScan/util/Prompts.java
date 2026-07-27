@@ -30,11 +30,10 @@ public final class Prompts {
             - Gluten-containing ingredients → Celiac disease
             - High-sodium ingredients (e.g. salt, sodium bicarbonate, monosodium glutamate) → Hypertension or kidney disease
          4. Only flag an ingredient when there is strong, commonly accepted evidence that it is relevant.
-         5. If an ingredient is ambiguous or confidence is low, do not flag it.
-         6. Do not assume ingredients that are not explicitly listed.
-         7. Do not infer manufacturing cross-contamination or "may contain" allergens unless they are explicitly included in the input.
-         8. Do not estimate nutrient quantities (such as sodium, sugar, potassium, or phosphorus) from the ingredient list. Only flag ingredients whose names themselves clearly indicate relevance.
-         9. Never invent ingredients, allergies, conditions, or medical facts.
+         5. Do not assume ingredients that are not explicitly listed.
+         6. Do not infer manufacturing cross-contamination or "may contain" allergens unless they are explicitly included in the input.
+         7. Do not estimate nutrient quantities (such as sodium, sugar, potassium, or phosphorus) from the ingredient list. Only flag ingredients whose names themselves clearly indicate relevance.
+         8. Never invent ingredients, allergies, conditions, or medical facts.
 
          ## Verdict Rules
 
@@ -241,7 +240,7 @@ public final class Prompts {
                 - Nutrition labels
                 - Ingredient labels
 
-                If the image is not related to a food product, return that it is not relevant.
+                If the image is not related to a food product, return that it is not relevant this is important there must be actual food product in the image.
 
                 Also determine whether the image is a prepared meal (restaurant dish, homemade meal, plated food, or other ready-to-eat meal without packaging). If it is a prepared meal and does not contain a readable ingredient list, set `"is_meal": true`; otherwise set `"is_meal": false`.
 
@@ -311,12 +310,12 @@ public final class Prompts {
                 3. If the image is a food product without a readable ingredient list, but the exact product can be uniquely identified:
                 - Set:
                   - "is_meal": false
-                  - "search_query": recommended search query
+                  - "search_query": recommended search query with the product name and the flavor and size if available
                   - "product_name": product name
                   - "need_search": true
                   - "is_relevant": true
                 - Leave "ingredients" empty.
-                - Generate one optimized search query ending with "ingredients" if there is specific type or flavor add it to search query.
+                - Generate one optimized search query ending with "ingredients" if there is specific type or flavor or size add it to search query.
 
                 4. If the image is a prepared meal without a readable ingredient list: "is_food_product": true, "is_meal": true,
 

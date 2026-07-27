@@ -2,11 +2,14 @@ package gov.iti.jets.NutriScan.util.tools;
 
 import gov.iti.jets.NutriScan.dto.ai.TavilyRequest;
 import gov.iti.jets.NutriScan.dto.ai.TavilyResponse;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -36,7 +39,6 @@ public class TavilySearchTool {
             apiKey,
             query,
             3,
-            true,
             true,
             false,
             List.of(
@@ -88,7 +90,26 @@ public class TavilySearchTool {
 
             sb.append("Content:\n").append(r.content()).append("\n");
 
-            sb.append("Raw Page Content:\n").append(r.rawContent()).append("\n\n");
+            try {
+                if (!r.content().toLowerCase().contains("ingredient") && !r.content().toLowerCase().contains("ingredients"))
+                {
+                    Document document = Jsoup.connect(r.url())
+                            .userAgent("Mozilla/5.0")
+                            .timeout(10000)
+                            .get();
+
+                    String cleanText = document.body()
+                            .text()
+                            .replaceAll("[\\p{C}]", "\n")
+                            .replaceAll("\\s+", " ")
+                            .trim();
+
+                    sb.append("Raw content: ").append(cleanText).append("\n");
+                    System.out.println(cleanText);
+                }
+            }catch (IOException e) {}
+
+
         }
 
         System.out.println("tool result: " + sb);
