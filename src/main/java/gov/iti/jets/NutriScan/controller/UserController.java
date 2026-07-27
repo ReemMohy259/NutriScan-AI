@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -33,5 +34,12 @@ public class UserController {
         userService.updateUserProfile(request, jwt);
 
         return userService.getCurrentUserProfile(jwt);
+    }
+
+    @PostMapping("/profile/image")
+    public CurrentUserProfileResponse uploadUserProfilePicture(
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestParam("image") MultipartFile image) {
+        return userService.uploadUserProfileImage(image, jwt);
     }
 }
