@@ -47,6 +47,9 @@ public class User {
     @BatchSize(size = 5)
     private Set<FamilyMember> familyMembers = new HashSet<>();
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private Instant createdAt;

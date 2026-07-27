@@ -1,10 +1,7 @@
 package gov.iti.jets.NutriScan.service;
 
 import gov.iti.jets.NutriScan.dto.*;
-import gov.iti.jets.NutriScan.exception.AllergyNotFoundException;
-import gov.iti.jets.NutriScan.exception.DiseaseNotFoundException;
-import gov.iti.jets.NutriScan.exception.ResourceNotFoundException;
-import gov.iti.jets.NutriScan.exception.UserNotFoundException;
+import gov.iti.jets.NutriScan.exception.*;
 import gov.iti.jets.NutriScan.mapper.AllergyMapper;
 import gov.iti.jets.NutriScan.mapper.DiseaseMapper;
 import gov.iti.jets.NutriScan.mapper.FamilyMemberMapper;
@@ -21,7 +18,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -51,6 +50,8 @@ public class UserService {
     private final DiseaseMapper diseaseMapper;
 
     private final FamilyMemberMapper familyMemberMapper;
+
+    private final CloudinaryStorageService cloudinaryStorageService;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -155,6 +156,39 @@ public class UserService {
         userRepository.flush();
     }
 
+    @Transactional
+    public CurrentUserProfileResponse uploadUserProfileImage(MultipartFile image, Jwt jwt) {
+
+        final long MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
+        if (image == null || image.isEmpty())
+            throw new NoImageProvidedException("Image is required");
+
+        String contentType = image.getContentType();
+
+        if (contentType == null || !contentType.startsWith("image/"))
+            throw new InvalidImageException("Only image files are allowed");
+
+        if (image.getSize() > MAX_IMAGE_SIZE_BYTES)
+            throw new ImageTooLargeException("Image size must not exceed 5 MB");
+
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        try {
+            String url = cloudinaryStorageService.upload(image);
+            user.setImageUrl(url);
+        } catch (IOException e) {
+            throw new ImageUploadException("Failed to upload image");
+        }
+
+        userRepository.save(user);
+
+        return getFullUser(jwt);
+    }
+
     public CurrentUserSummaryResponse getCurrentUserSummary(Jwt jwt) {
 
         CurrentUserProfileResponse user = getFullUser(jwt);
@@ -184,6 +218,7 @@ public class UserService {
             .username(userRepresentation.getUsername())
             .firstName(userRepresentation.getFirstName())
             .lastName(userRepresentation.getLastName())
+            .imageUrl(user.getImageUrl())
             .dateOfBirth(user.getDateOfBirth())
             .gender(user.getGender())
             .heightCm(user.getHeightCm())
@@ -243,6 +278,7 @@ public class UserService {
 
         return new UserAllergiesAndConditionsResponse(allergies, diseases);
     }
+
     // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
         Set<Allergy> allergies = allergyRepository.findAllByIdIn(allergyIds);
