@@ -12,6 +12,8 @@ public record CurrentUserSummaryResponse(
 
     String email,
 
-    String username) {
+    String username,
+
+    String imageUrl) {
 
 }
