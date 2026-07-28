@@ -41,6 +41,18 @@ public class DailyTracking {
     private Integer stepsCnt = 0;
 
     @Builder.Default
+    @Column(name = "steps_kcal")
+    private Double stepsKcal = 0.0;
+
+    @Builder.Default
+    @Column(name = "exercise_kcal")
+    private Double exerciseKcal = 0.0;
+
+    @Builder.Default
+    @Column(name = "exercise_min")
+    private Double exerciseMin = 0.0;
+
+    @Builder.Default
     @OneToMany(mappedBy = "dailyTracking", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<DailyTrackingMeal> meals = new HashSet<>();
 
