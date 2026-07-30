@@ -10,6 +10,8 @@ public record CurrentUserSummaryResponse(
 
     String lastName,
 
+    Integer dailyStreak,
+
     String email,
 
     String username,

@@ -279,6 +279,12 @@ public class UserService {
         return new UserAllergiesAndConditionsResponse(allergies, diseases);
     }
 
+    public void checkDailyStreak(Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+        LocalDate today = LocalDate.now();
+
+        userRepository.updateDailyStreak(userId, today, today.minusDays(1));
+    }
     // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
         Set<Allergy> allergies = allergyRepository.findAllByIdIn(allergyIds);

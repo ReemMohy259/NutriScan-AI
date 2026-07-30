@@ -24,6 +24,13 @@ public class User {
     @Column(name = "id", nullable = false)
     private UUID id;
 
+    @Column(name = "daily_streak", nullable = false)
+    @Builder.Default
+    private Integer dailyStreak = 0;
+
+    @Column(name = "last_active_date")
+    private LocalDate lastActiveDate;
+
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
