@@ -239,6 +239,7 @@ public class UserService {
             .familyMembers(
                 familyMemberMapper.toResponseList(user.getFamilyMembers().stream().toList()))
             .updatedAt(user.getUpdatedAt())
+            .dailyStreak(user.getDailyStreak())
             .build();
     }
 
