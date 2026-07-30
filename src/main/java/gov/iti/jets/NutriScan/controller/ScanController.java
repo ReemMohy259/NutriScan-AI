@@ -3,10 +3,12 @@ package gov.iti.jets.NutriScan.controller;
 import gov.iti.jets.NutriScan.dto.ScanResultResponse;
 import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
 import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
+import gov.iti.jets.NutriScan.dto.UpdateScanDto;
 import gov.iti.jets.NutriScan.exception.ImageTooLargeException;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
 import gov.iti.jets.NutriScan.exception.NoImageProvidedException;
 import gov.iti.jets.NutriScan.service.ScanService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -66,11 +68,23 @@ public class ScanController {
 
         return ResponseEntity.accepted().body(result);
     }
+
     @GetMapping("/{scanId}")
     public ScanResultResponse getScanResult(
         @AuthenticationPrincipal Jwt jwt,
         @PathVariable UUID scanId) {
         return scanService.findById(scanId, jwt);
+    }
+
+    @PatchMapping("/{scanId}")
+    public ResponseEntity<ScanResultResponse> updateScanName(
+        @AuthenticationPrincipal Jwt jwt,
+        @PathVariable UUID scanId,
+        @Valid @RequestBody UpdateScanDto request) {
+
+        ScanResultResponse scan = scanService
+            .updateScan(scanId, request.name(), request.favorite(), jwt);
+        return ResponseEntity.ok().body(scan);
     }
 
     @GetMapping
@@ -82,5 +96,15 @@ public class ScanController {
         Pageable validated = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         return scanService.findByUserId(jwt, validated);
+    }
+    @GetMapping("/favorites")
+    public Page<ScanSummaryResponse> getFavoriteScans(
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be greater than or equal to 0") int page,
+        @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") @RequestParam(defaultValue = "20") int size) {
+
+        Pageable validated = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return scanService.findFavoritesByUserId(jwt, validated);
     }
 }

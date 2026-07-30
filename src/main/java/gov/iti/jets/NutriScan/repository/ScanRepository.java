@@ -30,13 +30,36 @@ public interface ScanRepository extends JpaRepository<Scan, UUID> {
             s.id,
             s.imageUrl,
             s.verdict,
-            s.scannedAt
+            s.scannedAt,
+            s.productName,
+            nf.calories,
+                    s.status
         )
-        from Scan s
+            from Scan s
+                left join s.nutritionFact nf
         where s.user.id = :userId
         order by s.scannedAt desc
         """)
     Page<ScanSummaryResponse> findSummaryByUserId(@Param("userId") UUID userId, Pageable pageable);
+
+    @Query("""
+        select new gov.iti.jets.NutriScan.dto.ScanSummaryResponse(
+            s.id,
+            s.imageUrl,
+            s.verdict,
+            s.scannedAt,
+            s.productName,
+            nf.calories,
+                    s.status
+        )
+            from Scan s
+                left join s.nutritionFact nf
+        where s.user.id = :userId and s.favorite=true
+        order by s.scannedAt desc
+        """)
+    Page<ScanSummaryResponse> findFavoritesByUserId(
+        @Param("userId") UUID userId,
+        Pageable pageable);
 
     @Query("select s from Scan s where s.id = :id and s.user.id = :userId")
     Optional<Scan> findByIdAndUserId(UUID id, UUID userId);

@@ -114,7 +114,7 @@ public class ScanService {
                 return;
             }
 
-            List<String> ingredients = null;
+            List<String> ingredients;
 
             if (ocrResponse.isNeedSearch()) {
                 SearchModelResponseDto response = aiService.searchForIngredientsModel(
@@ -225,6 +225,19 @@ public class ScanService {
             .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.COMPLETED));
     }
 
+    @Transactional
+    public ScanResultResponse updateScan(UUID scanId, String name, Boolean isFavorite, Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        Scan scan = scanRepository.findByIdWithDetails(scanId, userId)
+            .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
+        if (name != null)
+            scan.setProductName(name);
+
+        if (isFavorite != null)
+            scan.setFavorite(isFavorite);
+
+        return scanMapper.toResultResponse(scan);
+    }
     public ScanResultResponse findById(UUID id, Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
@@ -238,6 +251,13 @@ public class ScanService {
         UUID userId = UUID.fromString(jwt.getSubject());
 
         return scanRepository.findSummaryByUserId(userId, pageable);
+    }
+
+    // Careful for N+1 queries
+    public Page<ScanSummaryResponse> findFavoritesByUserId(Jwt jwt, Pageable pageable) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        return scanRepository.findFavoritesByUserId(userId, pageable);
     }
 
     public void delete(UUID id) {
