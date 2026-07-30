@@ -1,12 +1,11 @@
 package gov.iti.jets.NutriScan.controller;
 
-import gov.iti.jets.NutriScan.dto.ScanResultResponse;
-import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
-import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
-import gov.iti.jets.NutriScan.dto.UpdateScanDto;
+import gov.iti.jets.NutriScan.dto.*;
+import gov.iti.jets.NutriScan.dto.ai.barcode.BarCodeProductDto;
 import gov.iti.jets.NutriScan.exception.ImageTooLargeException;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
 import gov.iti.jets.NutriScan.exception.NoImageProvidedException;
+import gov.iti.jets.NutriScan.service.OpenFoodFactsService;
 import gov.iti.jets.NutriScan.service.ScanService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -34,6 +33,7 @@ public class ScanController {
 
     private final ScanService scanService;
     private static final long MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+    private final OpenFoodFactsService openFoodFactsService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -87,6 +87,13 @@ public class ScanController {
         return ResponseEntity.ok().body(scan);
     }
 
+    @PostMapping(value = "/barcode")
+    public BarCodeProductDto getBarCodeScan(
+        @AuthenticationPrincipal Jwt jwt,
+        @Valid @RequestBody BarCodeRequest request) {
+        return openFoodFactsService.getProduct(request.barcode());
+    }
+
     @GetMapping
     public Page<ScanSummaryResponse> getScans(
         @AuthenticationPrincipal Jwt jwt,
@@ -97,6 +104,7 @@ public class ScanController {
 
         return scanService.findByUserId(jwt, validated);
     }
+
     @GetMapping("/favorites")
     public Page<ScanSummaryResponse> getFavoriteScans(
         @AuthenticationPrincipal Jwt jwt,
