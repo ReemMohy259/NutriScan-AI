@@ -1,11 +1,10 @@
 package gov.iti.jets.NutriScan.controller;
 
-import gov.iti.jets.NutriScan.dto.CurrentUserProfileResponse;
-import gov.iti.jets.NutriScan.dto.CurrentUserSummaryResponse;
-import gov.iti.jets.NutriScan.dto.UpdateProfileRequest;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -42,5 +41,17 @@ public class UserController {
         @AuthenticationPrincipal Jwt jwt,
         @RequestParam("image") MultipartFile image) {
         return userService.uploadUserProfileImage(image, jwt);
+    }
+
+    @DeleteMapping("/profile")
+    public DeleteAccountResponse deleteUser(@AuthenticationPrincipal Jwt jwt) {
+
+        return userService.scheduleUserForDeletion(jwt);
+    }
+
+    @PostMapping("/profile/restore")
+    public RestoreAccountResponse restoreUser(@AuthenticationPrincipal Jwt jwt) {
+
+        return userService.restoreAccount(jwt);
     }
 }
