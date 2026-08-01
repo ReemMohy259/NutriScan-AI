@@ -20,7 +20,7 @@ public class CloudinaryStorageService {
     public String upload(MultipartFile file) throws IOException {
 
         Map<?, ?> result = cloudinary.uploader()
-                .upload(file.getBytes(), ObjectUtils.asMap("folder", "nutriscan"));
+            .upload(file.getBytes(), ObjectUtils.asMap("folder", "nutriscan"));
 
         return result.get("secure_url").toString();
     }
@@ -28,11 +28,8 @@ public class CloudinaryStorageService {
     public void delete(String publicId) throws IOException {
 
         // the invalidate key is to remove the image from the CDN cache as well
-        Map<?, ?> result = cloudinary.uploader().destroy(
-                publicId,
-                ObjectUtils.asMap(
-                        "invalidate", true
-                ));
+        Map<?, ?> result = cloudinary.uploader()
+            .destroy(publicId, ObjectUtils.asMap("invalidate", true));
 
         log.info("Cloudinary delete response: {}", result);
     }

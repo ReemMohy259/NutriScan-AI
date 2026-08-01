@@ -309,16 +309,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccountNotPendingDeletionException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
-            AccountNotPendingDeletionException ex,
-            HttpServletRequest request) {
+        AccountNotPendingDeletionException ex,
+        HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.CONFLICT.value())
-                .error("ACCOUNT_IS_NOT_PENDING_DELETION")
-                .message(ex.getMessage())
-                .path(request.getRequestURL().toString())
-                .build();
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONFLICT.value())
+            .error("ACCOUNT_IS_NOT_PENDING_DELETION")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }

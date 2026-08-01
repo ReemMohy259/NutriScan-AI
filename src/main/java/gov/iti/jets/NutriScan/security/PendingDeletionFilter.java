@@ -32,9 +32,9 @@ public class PendingDeletionFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain filterChain) throws ServletException, IOException {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -44,14 +44,15 @@ public class PendingDeletionFilter extends OncePerRequestFilter {
 
             User user = userRepository.findById(keycloakId).orElseThrow();
 
-            if (user.getAccountStatus() == AccountStatus.PENDING_DELETION && !isAllowedForPendingDeletion(request)) {
+            if (user.getAccountStatus() == AccountStatus.PENDING_DELETION
+                && !isAllowedForPendingDeletion(request)) {
 
                 handlerExceptionResolver.resolveException(
-                        request,
-                        response,
-                        null,
-                        new AccountPendingDeletionException(
-                                "Account is already scheduled for deletion on " + user.getToBeDeletedAt()));
+                    request,
+                    response,
+                    null,
+                    new AccountPendingDeletionException(
+                        "Account is already scheduled for deletion on " + user.getToBeDeletedAt()));
 
                 return;
             }
@@ -65,6 +66,6 @@ public class PendingDeletionFilter extends OncePerRequestFilter {
         log.info("{} {}", request.getMethod(), request.getRequestURI());
 
         return request.getMethod().equals("POST")
-                && request.getRequestURI().equals("/api/v1/users/profile/restore");
+            && request.getRequestURI().equals("/api/v1/users/profile/restore");
     }
 }

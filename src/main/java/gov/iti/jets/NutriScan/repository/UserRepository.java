@@ -13,20 +13,20 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("""
-            select distinct u
-            from User u
-            left join fetch u.userAllergies ua
-            left join fetch ua.allergy
-            left join fetch u.userDiseases ud
-            left join fetch ud.disease
-            where u.id = :id
-            """)
+        select distinct u
+        from User u
+        left join fetch u.userAllergies ua
+        left join fetch ua.allergy
+        left join fetch u.userDiseases ud
+        left join fetch ud.disease
+        where u.id = :id
+        """)
     Optional<User> findByIdWithAllergiesAndDiseases(UUID id);
 
     Page<User> findAllByAccountStatus(AccountStatus accountStatus, Pageable pageable);
 
     Page<User> findAllByAccountStatusAndToBeDeletedAtBefore(
-            AccountStatus accountStatus,
-            Instant now,
-            Pageable pageable);
+        AccountStatus accountStatus,
+        Instant now,
+        Pageable pageable);
 }
