@@ -1,9 +1,6 @@
 package gov.iti.jets.NutriScan.controller;
 
-import gov.iti.jets.NutriScan.dto.CurrentUserProfileResponse;
-import gov.iti.jets.NutriScan.dto.CurrentUserSummaryResponse;
-import gov.iti.jets.NutriScan.dto.DeleteAccountResponse;
-import gov.iti.jets.NutriScan.dto.UpdateProfileRequest;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -53,8 +50,8 @@ public class UserController {
     }
 
     @PostMapping("/profile/restore")
-    public DeleteAccountResponse restoreUser(@AuthenticationPrincipal Jwt jwt) {
+    public RestoreAccountResponse restoreUser(@AuthenticationPrincipal Jwt jwt) {
 
-        return userService.scheduleUserForDeletion(jwt);
+        return userService.restoreAccount(jwt);
     }
 }

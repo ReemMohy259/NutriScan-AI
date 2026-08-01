@@ -275,20 +275,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
-    @ExceptionHandler(AccountAlreadyPendingDeletionException.class)
+    @ExceptionHandler(AccountPendingDeletionException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
-        AccountAlreadyPendingDeletionException ex,
+        AccountPendingDeletionException ex,
         HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
             .timestamp(Instant.now())
             .status(HttpStatus.CONFLICT.value())
-            .error("ACCOUNT_ALREADY_PENDING_DELETION")
+            .error("ACCOUNT_PENDING_DELETION")
             .message(ex.getMessage())
             .path(request.getRequestURL().toString())
             .build();
 
-        return ResponseEntity.badRequest().body(response);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(IllegalStateException.class)
@@ -304,6 +304,22 @@ public class GlobalExceptionHandler {
             .path(request.getRequestURL().toString())
             .build();
 
-        return ResponseEntity.badRequest().body(response);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(AccountNotPendingDeletionException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
+            AccountNotPendingDeletionException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("ACCOUNT_IS_NOT_PENDING_DELETION")
+                .message(ex.getMessage())
+                .path(request.getRequestURL().toString())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 }

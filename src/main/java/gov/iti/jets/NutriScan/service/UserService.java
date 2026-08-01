@@ -300,7 +300,7 @@ public class UserService {
                         () -> new UserNotFoundException("User with id [%s] not found!".formatted(userId)));
 
         if (user.getAccountStatus() == AccountStatus.PENDING_DELETION) {
-            throw new AccountAlreadyPendingDeletionException(
+            throw new AccountPendingDeletionException(
                     "Account is already scheduled for deletion on " + user.getToBeDeletedAt());
         }
 
@@ -322,8 +322,7 @@ public class UserService {
         while (true) {
             Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtBefore(
                     AccountStatus.PENDING_DELETION,
-//                    Instant.now(),
-                    Instant.now().plus(15, ChronoUnit.DAYS),
+                    Instant.now(),
                     PageRequest.of(0, 50));
 
             log.info("Found {} users to delete", users.getNumberOfElements());
@@ -380,6 +379,24 @@ public class UserService {
                 }
             }
         }
+    }
+
+    @Transactional
+    public RestoreAccountResponse restoreAccount(Jwt jwt) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with id [%s] not found!".formatted(userId)));
+
+        if (user.getAccountStatus() != AccountStatus.PENDING_DELETION) {
+            throw new AccountNotPendingDeletionException("This account is not marked fro deletion.");
+        }
+
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setToBeDeletedAt(null);
+
+        return new RestoreAccountResponse("Your account has been restored.", Instant.now());
     }
 
     // Helper Methods
