@@ -28,10 +28,11 @@ public class AiService {
     private final StructuredChatClient structuredChatClient;
 
     public AiService(
-            ChatClient chatClient,
-            @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
-            TavilySearchTool tavilySearchTool,
-            ObjectMapper objectMapper, StructuredChatClient structuredChatClient) {
+        ChatClient chatClient,
+        @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
+        TavilySearchTool tavilySearchTool,
+        ObjectMapper objectMapper,
+        StructuredChatClient structuredChatClient) {
         this.chatClient = chatClient;
         this.opencodeChatClient = opencodeChatClient;
         this.tavilySearchTool = tavilySearchTool;
@@ -56,14 +57,14 @@ public class AiService {
                 requestData.allergies(),
                 requestData.conditions());
 
-//        return structuredChatClient.generate(
-//                Prompts.FOOD_SAFETY_SYSTEM,
-//                userPrompt,
-//                "food_safety_response",
-//                foodSafetySchema,
-//                1000,
-//                FoodSafetyResponse.class
-//        );
+        // return structuredChatClient.generate(
+        // Prompts.FOOD_SAFETY_SYSTEM,
+        // userPrompt,
+        // "food_safety_response",
+        // foodSafetySchema,
+        // 1000,
+        // FoodSafetyResponse.class
+        // );
 
         return opencodeChatClient.prompt()
             .system(Prompts.FOOD_SAFETY_SYSTEM)

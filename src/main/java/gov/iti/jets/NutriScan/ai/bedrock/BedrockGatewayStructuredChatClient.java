@@ -15,8 +15,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
-public final class BedrockGatewayStructuredChatClient
-    implements StructuredChatClient {
+public final class BedrockGatewayStructuredChatClient implements StructuredChatClient {
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -28,16 +27,12 @@ public final class BedrockGatewayStructuredChatClient
         String baseUrl,
         String apiKey,
         String modelId,
-        ObjectMapper objectMapper
-    ) {
+        ObjectMapper objectMapper) {
         Objects.requireNonNull(baseUrl, "baseUrl is required");
         Objects.requireNonNull(apiKey, "apiKey is required");
         Objects.requireNonNull(modelId, "modelId is required");
 
-        this.objectMapper = Objects.requireNonNull(
-            objectMapper,
-            "objectMapper is required"
-        );
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper is required");
 
         if (baseUrl.isBlank()) {
             throw new IllegalArgumentException("baseUrl cannot be blank");
@@ -55,17 +50,15 @@ public final class BedrockGatewayStructuredChatClient
             ? baseUrl.substring(0, baseUrl.length() - 1)
             : baseUrl;
 
-        this.chatEndpoint = URI.create(
-            normalizedBaseUrl + "/student/chat"
-        );
+        this.chatEndpoint = URI.create(normalizedBaseUrl + "/student/chat");
 
         this.apiKey = apiKey;
         this.modelId = modelId;
 
         this.httpClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(20))
-                .build();
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(20))
+            .build();
     }
 
     @Override
@@ -75,8 +68,7 @@ public final class BedrockGatewayStructuredChatClient
         String schemaName,
         JsonNode jsonSchema,
         int maxTokens,
-        Class<T> responseType
-    ) {
+        Class<T> responseType) {
         Objects.requireNonNull(systemPrompt, "systemPrompt is required");
         Objects.requireNonNull(userPrompt, "userPrompt is required");
         Objects.requireNonNull(schemaName, "schemaName is required");
@@ -84,9 +76,7 @@ public final class BedrockGatewayStructuredChatClient
         Objects.requireNonNull(responseType, "responseType is required");
 
         if (maxTokens <= 0) {
-            throw new IllegalArgumentException(
-                "maxTokens must be greater than zero"
-            );
+            throw new IllegalArgumentException("maxTokens must be greater than zero");
         }
 
         GatewayChatRequest requestBody = new GatewayChatRequest(
@@ -96,17 +86,10 @@ public final class BedrockGatewayStructuredChatClient
             maxTokens,
             new ResponseFormat(
                 "json_schema",
-                new JsonSchemaDefinition(
-                    schemaName,
-                    true,
-                    jsonSchema
-                )
-            )
-        );
+                new JsonSchemaDefinition(schemaName, true, jsonSchema)));
 
         try {
-            String requestJson =
-                objectMapper.writeValueAsString(requestBody);
+            String requestJson = objectMapper.writeValueAsString(requestBody);
 
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(chatEndpoint)
@@ -117,54 +100,38 @@ public final class BedrockGatewayStructuredChatClient
                 .POST(HttpRequest.BodyPublishers.ofString(requestJson))
                 .build();
 
-            HttpResponse<String> response = httpClient.send(
-                request,
-                HttpResponse.BodyHandlers.ofString()
-            );
+            HttpResponse<String> response = httpClient
+                .send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() >= 400) {
                 throw new BedrockGatewayException(
-                    "Bedrock gateway returned HTTP "
-                        + response.statusCode()
-                        + ": "
-                        + response.body()
-                );
+                    "Bedrock gateway returned HTTP " + response.statusCode() + ": "
+                        + response.body());
             }
 
-            String structuredJson =
-                extractStructuredJson(response.body());
+            String structuredJson = extractStructuredJson(response.body());
 
-            return objectMapper.readValue(
-                structuredJson,
-                    responseType
-            );
+            return objectMapper.readValue(structuredJson, responseType);
 
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
 
-            throw new BedrockGatewayException(
-                "Bedrock gateway request was interrupted",
-                exception
-            );
+            throw new BedrockGatewayException("Bedrock gateway request was interrupted", exception);
 
         } catch (IOException exception) {
             exception.printStackTrace();
             throw new BedrockGatewayException(
                 "Failed to communicate with the Bedrock gateway",
-                exception
-            );
+                exception);
         }
     }
 
-    private String extractStructuredJson(String responseBody)
-        throws JsonProcessingException {
+    private String extractStructuredJson(String responseBody) throws JsonProcessingException {
 
         JsonNode root = objectMapper.readTree(responseBody);
         JsonNode contentNode = findContentNode(root);
 
-        if (contentNode == null
-            || contentNode.isMissingNode()
-            || contentNode.isNull()) {
+        if (contentNode == null || contentNode.isMissingNode() || contentNode.isNull()) {
 
             return responseBody;
         }
@@ -232,50 +199,31 @@ public final class BedrockGatewayStructuredChatClient
         }
 
         if (cleaned.endsWith("```")) {
-            cleaned = cleaned.substring(
-                0,
-                cleaned.length() - 3
-            );
+            cleaned = cleaned.substring(0, cleaned.length() - 3);
         }
 
         return cleaned.trim();
     }
 
-    private record GatewayChatRequest(
-        @JsonProperty("model_id")
-        String modelId,
+    private record GatewayChatRequest(@JsonProperty("model_id") String modelId,
 
         List<GatewayMessage> messages,
 
-        @JsonProperty("system_prompt")
-        String systemPrompt,
+        @JsonProperty("system_prompt") String systemPrompt,
 
-        @JsonProperty("max_tokens")
-        int maxTokens,
+        @JsonProperty("max_tokens") int maxTokens,
 
-        @JsonProperty("response_format")
-        ResponseFormat responseFormat
-    ) {
+        @JsonProperty("response_format") ResponseFormat responseFormat) {
     }
 
-    private record GatewayMessage(
-        String role,
-        String content
-    ) {
+    private record GatewayMessage(String role, String content) {
     }
 
-    private record ResponseFormat(
-        String type,
+    private record ResponseFormat(String type,
 
-        @JsonProperty("json_schema")
-        JsonSchemaDefinition jsonSchema
-    ) {
+        @JsonProperty("json_schema") JsonSchemaDefinition jsonSchema) {
     }
 
-    private record JsonSchemaDefinition(
-        String name,
-        boolean strict,
-        JsonNode schema
-    ) {
+    private record JsonSchemaDefinition(String name, boolean strict, JsonNode schema) {
     }
 }

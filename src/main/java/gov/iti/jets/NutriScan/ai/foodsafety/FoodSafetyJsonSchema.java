@@ -72,10 +72,7 @@ public final class FoodSafetyJsonSchema {
         try {
             return objectMapper.readTree(schema);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException(
-                "Invalid food-safety JSON schema",
-                exception
-            );
+            throw new IllegalStateException("Invalid food-safety JSON schema", exception);
         }
     }
 }

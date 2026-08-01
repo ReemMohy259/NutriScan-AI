@@ -221,7 +221,7 @@ public final class Prompts {
 
     public static final String OCR_SYSTEM = """
                 You are an image analysis assistant specialized in food products.
-        
+
                Analyze one image and return ONLY a valid JSON object using the schema below.
 
                ## Task
@@ -234,7 +234,7 @@ public final class Prompts {
                - A readable nutrition facts label.
 
                ## Rules
-        
+
                1. The image is relevant only if its primary subject is a food product, nutrition label, ingredient label, or prepared meal. The subject must be centered or prominent in the image. Ignore products that are small, distant, partially visible, or in the background.
 
                2. If the image does not contain a food product, nutrition label, or ingredient label:

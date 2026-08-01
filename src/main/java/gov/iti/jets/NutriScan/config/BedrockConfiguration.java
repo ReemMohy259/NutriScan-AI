@@ -20,13 +20,7 @@ public class BedrockConfiguration {
         ObjectMapper objectMapper,
         @Value("${bedrock.base-url}") String baseUrl,
         @Value("${bedrock.api-key}") String apiKey,
-        @Value("${bedrock.model-id:deepseek.v3.2}") String modelId
-    ) {
-        return new BedrockGatewayStructuredChatClient(
-            baseUrl,
-            apiKey,
-            modelId,
-            objectMapper
-        );
+        @Value("${bedrock.model-id:deepseek.v3.2}") String modelId) {
+        return new BedrockGatewayStructuredChatClient(baseUrl, apiKey, modelId, objectMapper);
     }
 }

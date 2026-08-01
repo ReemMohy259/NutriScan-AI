@@ -91,24 +91,24 @@ public class TavilySearchTool {
             sb.append("Content:\n").append(r.content()).append("\n");
 
             try {
-                if (!r.content().toLowerCase().contains("ingredient") && !r.content().toLowerCase().contains("ingredients"))
-                {
+                if (!r.content().toLowerCase().contains("ingredient")
+                    && !r.content().toLowerCase().contains("ingredients")) {
                     Document document = Jsoup.connect(r.url())
-                            .userAgent("Mozilla/5.0")
-                            .timeout(10000)
-                            .get();
+                        .userAgent("Mozilla/5.0")
+                        .timeout(10000)
+                        .get();
 
                     String cleanText = document.body()
-                            .text()
-                            .replaceAll("[\\p{C}]", "\n")
-                            .replaceAll("\\s+", " ")
-                            .trim();
+                        .text()
+                        .replaceAll("[\\p{C}]", "\n")
+                        .replaceAll("\\s+", " ")
+                        .trim();
 
                     sb.append("Raw content: ").append(cleanText).append("\n");
                     System.out.println(cleanText);
                 }
-            }catch (IOException e) {}
-
+            } catch (IOException e) {
+            }
 
         }
 
