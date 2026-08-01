@@ -10,6 +10,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -41,6 +43,13 @@ public class UserController {
         @AuthenticationPrincipal Jwt jwt,
         @RequestParam("image") MultipartFile image) {
         return userService.uploadUserProfileImage(image, jwt);
+    }
+    @PatchMapping(path = "/family-member/{familyMemberId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public FamilyMemberResponse uploadUserFamilyMemberPicture(
+        @AuthenticationPrincipal Jwt jwt,
+        @PathVariable UUID familyMemberId,
+        @RequestParam("image") MultipartFile image) {
+        return userService.uploadUserFamilyMemberImage(familyMemberId, image, jwt);
     }
     @PostMapping("/me/daily-streak")
     public ResponseEntity<Void> updateDailyStreak(@AuthenticationPrincipal Jwt jwt) {
