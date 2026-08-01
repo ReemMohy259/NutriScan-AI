@@ -24,6 +24,13 @@ public class User {
     @Column(name = "id", nullable = false)
     private UUID id;
 
+    @Column(name = "daily_streak", nullable = false)
+    @Builder.Default
+    private Integer dailyStreak = 0;
+
+    @Column(name = "last_active_date")
+    private LocalDate lastActiveDate;
+
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
@@ -47,6 +54,12 @@ public class User {
     @BatchSize(size = 5)
     private Set<FamilyMember> familyMembers = new HashSet<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<DailyTracking> dailyTrackings = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Scan> scans = new HashSet<>();
+
     @Column(name = "image_url")
     private String imageUrl;
 
@@ -57,6 +70,14 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status")
+    @Builder.Default
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
+    @Column(name = "to_be_deleted_at")
+    private Instant toBeDeletedAt;
 
     public void addAllergy(UserAllergy userAllergy) {
         if (userAllergy != null) {
