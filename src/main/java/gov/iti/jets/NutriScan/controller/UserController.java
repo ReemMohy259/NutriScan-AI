@@ -42,6 +42,11 @@ public class UserController {
         @RequestParam("image") MultipartFile image) {
         return userService.uploadUserProfileImage(image, jwt);
     }
+    @PostMapping("/me/daily-streak")
+    public ResponseEntity<Void> updateDailyStreak(@AuthenticationPrincipal Jwt jwt) {
+        userService.checkDailyStreak(jwt);
+        return ResponseEntity.noContent().build();
+    }
 
     @DeleteMapping("/profile")
     public DeleteAccountResponse deleteUser(@AuthenticationPrincipal Jwt jwt) {

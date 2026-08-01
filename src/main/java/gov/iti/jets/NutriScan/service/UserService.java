@@ -248,6 +248,7 @@ public class UserService {
             .familyMembers(
                 familyMemberMapper.toResponseList(user.getFamilyMembers().stream().toList()))
             .updatedAt(user.getUpdatedAt())
+            .dailyStreak(user.getDailyStreak())
             .build();
     }
 
@@ -288,6 +289,12 @@ public class UserService {
         return new UserAllergiesAndConditionsResponse(allergies, diseases);
     }
 
+    public void checkDailyStreak(Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+        LocalDate today = LocalDate.now();
+
+        userRepository.updateDailyStreak(userId, today, today.minusDays(1));
+    }
     @Transactional
     public DeleteAccountResponse scheduleUserForDeletion(Jwt jwt) {
 

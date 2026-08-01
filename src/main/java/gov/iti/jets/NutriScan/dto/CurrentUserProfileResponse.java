@@ -20,6 +20,8 @@ public record CurrentUserProfileResponse(UUID id,
 
     String lastName,
 
+    Integer dailyStreak,
+
     String imageUrl,
 
     LocalDate dateOfBirth,
