@@ -1,5 +1,6 @@
 package gov.iti.jets.NutriScan.service;
 
+import gov.iti.jets.NutriScan.config.properties.AccountProperties;
 import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.exception.*;
 import gov.iti.jets.NutriScan.mapper.AllergyMapper;
@@ -10,11 +11,15 @@ import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.AllergyRepository;
 import gov.iti.jets.NutriScan.repository.DiseaseRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
+import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -30,6 +36,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     @Value("${keycloak.realm.name}")
@@ -52,6 +59,8 @@ public class UserService {
     private final FamilyMemberMapper familyMemberMapper;
 
     private final CloudinaryStorageService cloudinaryStorageService;
+
+    private final AccountProperties accountProperties;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -286,6 +295,122 @@ public class UserService {
 
         userRepository.updateDailyStreak(userId, today, today.minusDays(1));
     }
+    @Transactional
+    public DeleteAccountResponse scheduleUserForDeletion(Jwt jwt) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        int gracePeriodDays = accountProperties.deletionGracePeriodDays();
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(
+                () -> new UserNotFoundException("User with id [%s] not found!".formatted(userId)));
+
+        if (user.getAccountStatus() == AccountStatus.PENDING_DELETION) {
+            throw new AccountPendingDeletionException(
+                "Account is already scheduled for deletion on " + user.getToBeDeletedAt());
+        }
+
+        // logout the user and revoke his refresh token
+        keycloak.realm(realmName).users().get(userId.toString()).logout();
+
+        Instant accountDeletionTime = Instant.now().plus(gracePeriodDays, ChronoUnit.DAYS);
+
+        user.setAccountStatus(AccountStatus.PENDING_DELETION);
+        user.setToBeDeletedAt(accountDeletionTime);
+
+        return new DeleteAccountResponse(accountDeletionTime, gracePeriodDays);
+    }
+
+    public void deleteExpiredAccounts(UserService userService) {
+
+        UsersResource usersResource = keycloak.realm(realmName).users();
+
+        while (true) {
+            Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtBefore(
+                AccountStatus.PENDING_DELETION,
+                Instant.now(),
+                PageRequest.of(0, 50));
+
+            log.info("Found {} users to delete", users.getNumberOfElements());
+
+            if (users.isEmpty()) {
+                break;
+            }
+
+            for (User user : users) {
+                try {
+                    log.info("Deleting account {} permanently", user.getId());
+                    permanentlyDeleteAccount(user, usersResource, userService);
+                    log.info("Successfully deleted {}", user.getId());
+                } catch (Exception ex) {
+                    log.error("Failed deleting user {}", user.getId(), ex);
+                }
+            }
+        }
+
+        log.info("Finished deleting expired accounts.");
+    }
+
+    public void permanentlyDeleteAccount(
+        User user,
+        UsersResource usersResource,
+        UserService userService) {
+
+        log.info("Deleting resources from Cloudinary...");
+        deleteCloudinaryResources(user.getImageUrl());
+
+        log.info("Deleting from Keycloak...");
+        deleteKeycloakAccount(usersResource, user.getId().toString());
+
+        userService.deleteUserFromDatabase(user);
+    }
+
+    @Transactional
+    public void reconcileAccounts(UserService userService) {
+
+        UsersResource usersResource = keycloak.realm(realmName).users();
+
+        while (true) {
+            Page<User> users = userRepository
+                .findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(0, 50));
+
+            if (users.isEmpty()) {
+                break;
+            }
+
+            for (User user : users) {
+                try {
+                    if (!userExists(user.getId())) {
+                        permanentlyDeleteAccount(user, usersResource, userService);
+                    }
+                } catch (Exception ex) {
+                    log.error("Reconciling user with id [{}] failed.", user.getId(), ex);
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public RestoreAccountResponse restoreAccount(Jwt jwt) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(
+                () -> new UserNotFoundException("User with id [%s] not found!".formatted(userId)));
+
+        if (user.getAccountStatus() != AccountStatus.PENDING_DELETION) {
+            throw new AccountNotPendingDeletionException(
+                "This account is not marked fro deletion.");
+        }
+
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setToBeDeletedAt(null);
+
+        return new RestoreAccountResponse("Your account has been restored.", Instant.now());
+    }
+
     // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
         Set<Allergy> allergies = allergyRepository.findAllByIdIn(allergyIds);
@@ -457,5 +582,48 @@ public class UserService {
             + (userGender.equals(Gender.MALE) ? 5 : -161);
 
         return bmr * 1.2; // 1.2 resembles (Desk job, little to no intentional exercise).
+    }
+
+    private boolean userExists(UUID id) {
+
+        try {
+            keycloak.realm(realmName).users().get(id.toString()).toRepresentation();
+
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private void deleteKeycloakAccount(UsersResource usersResource, String userId) {
+        try (Response response = usersResource.delete(userId)) {
+            if (response.getStatus() != 204 && response.getStatus() != 404) {
+
+                throw new IllegalStateException(
+                    "Keycloak user couldn't be deleted. Status=" + response.getStatus());
+            }
+        }
+    }
+
+    private void deleteCloudinaryResources(String imageUrl) {
+
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+
+        // to get the public id from the image url because that's what cloudinary needs
+        // to delete the image
+        String publicId = "nutriscan"
+            + imageUrl.substring(imageUrl.lastIndexOf("/"), imageUrl.lastIndexOf("."));
+        try {
+            cloudinaryStorageService.delete(publicId);
+        } catch (IOException e) {
+            throw new CloudinaryDeletionException(imageUrl, e.getMessage());
+        }
+    }
+
+    @Transactional
+    protected void deleteUserFromDatabase(User user) {
+        userRepository.delete(user);
     }
 }

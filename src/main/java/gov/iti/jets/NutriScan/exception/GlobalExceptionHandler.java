@@ -240,6 +240,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(response);
     }
+
     @ExceptionHandler(ImageUploadException.class)
     public ResponseEntity<ApiErrorResponse> handleImageUploadException(
         ImageUploadException ex,
@@ -272,5 +273,53 @@ public class GlobalExceptionHandler {
             .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(AccountPendingDeletionException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
+        AccountPendingDeletionException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONFLICT.value())
+            .error("ACCOUNT_PENDING_DELETION")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
+        IllegalStateException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONFLICT.value())
+            .error("ILLEGAL_STATE")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(AccountNotPendingDeletionException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
+        AccountNotPendingDeletionException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONFLICT.value())
+            .error("ACCOUNT_IS_NOT_PENDING_DELETION")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 }
