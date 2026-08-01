@@ -1,5 +1,9 @@
 package gov.iti.jets.NutriScan.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import gov.iti.jets.NutriScan.ai.bedrock.BedrockGatewayStructuredChatClient;
+import gov.iti.jets.NutriScan.ai.bedrock.StructuredChatClient;
+import gov.iti.jets.NutriScan.ai.foodsafety.FoodSafetyJsonSchema;
 import gov.iti.jets.NutriScan.dto.ai.*;
 import gov.iti.jets.NutriScan.exception.MealModelException;
 import gov.iti.jets.NutriScan.exception.OcrModelException;
@@ -12,8 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class AiService {
@@ -21,18 +24,24 @@ public class AiService {
     private final ChatClient chatClient;
     private final ChatClient opencodeChatClient;
     private final TavilySearchTool tavilySearchTool;
+    private final JsonNode foodSafetySchema;
+    private final StructuredChatClient structuredChatClient;
 
     public AiService(
-        ChatClient chatClient,
-        @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
-        TavilySearchTool tavilySearchTool) {
+            ChatClient chatClient,
+            @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
+            TavilySearchTool tavilySearchTool,
+            ObjectMapper objectMapper, StructuredChatClient structuredChatClient) {
         this.chatClient = chatClient;
         this.opencodeChatClient = opencodeChatClient;
         this.tavilySearchTool = tavilySearchTool;
+
+        this.foodSafetySchema = FoodSafetyJsonSchema.create(objectMapper);
+        this.structuredChatClient = structuredChatClient;
     }
 
     public FoodSafetyResponse checkSafety(IngredientsSafetyPrompt requestData) {
-        // TODO: add nutrition facts to the prompt
+
         String userPrompt = """
             Analyze the ingredients and check if they are safe for consumption with the following context:
             ingredients: %s
@@ -47,6 +56,15 @@ public class AiService {
                 requestData.allergies(),
                 requestData.conditions());
 
+//        return structuredChatClient.generate(
+//                Prompts.FOOD_SAFETY_SYSTEM,
+//                userPrompt,
+//                "food_safety_response",
+//                foodSafetySchema,
+//                1000,
+//                FoodSafetyResponse.class
+//        );
+
         return opencodeChatClient.prompt()
             .system(Prompts.FOOD_SAFETY_SYSTEM)
             .user(userPrompt)
@@ -58,7 +76,6 @@ public class AiService {
         byte[] bytes,
         String contentType,
         MealIngredientsSafetyPrompt userData) {
-        // TODO: add nutrition facts to the prompt
         String userPrompt = """
             Analyze the meal and extract the ingredients and check if they are safe for consumption.
 
@@ -111,26 +128,23 @@ public class AiService {
         }
     }
 
-    public List<String> searchForIngredientsModel(String query, String productName) {
+    public SearchModelResponseDto searchForIngredientsModel(String query, String productName) {
+
+        String webResult = tavilySearchTool.search(query);
 
         String promptText = String.format(
-            "get the ingredients of product: %s and the recommended search query is %s",
+            "get the ingredients of product: %s and the recommended search query is %s\n\n\n web result is: %s",
             productName,
-            query);
+            query,
+            webResult);
 
-        // var options =
-        // OpenAiChatOptions.builder().parallelToolCalls(false).maxTokens(5000);
-
-        String response = chatClient.prompt()
+        SearchModelResponseDto response = chatClient.prompt()
             .system(Prompts.SEARCH_MODEL_SYSTEM)
-            // .options(options)
             .user(promptText)
-            .tools(tavilySearchTool)
             .call()
-            .content();
-        // .entity(new ParameterizedTypeReference<List<String>>() {});
+            .entity(SearchModelResponseDto.class);
 
-        System.out.println("search Response: " + response);
-        return List.of(response);
+        System.out.println("search Model Response: " + response);
+        return response;
     }
 }
