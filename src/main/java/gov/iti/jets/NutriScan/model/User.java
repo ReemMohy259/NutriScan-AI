@@ -47,6 +47,12 @@ public class User {
     @BatchSize(size = 5)
     private Set<FamilyMember> familyMembers = new HashSet<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<DailyTracking> dailyTrackings = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Scan> scans = new HashSet<>();
+
     @Column(name = "image_url")
     private String imageUrl;
 
@@ -57,6 +63,14 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status")
+    @Builder.Default
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
+    @Column(name = "to_be_deleted_at")
+    private Instant toBeDeletedAt;
 
     public void addAllergy(UserAllergy userAllergy) {
         if (userAllergy != null) {
