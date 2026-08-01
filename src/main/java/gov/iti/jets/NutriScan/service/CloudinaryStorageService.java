@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,4 +34,41 @@ public class CloudinaryStorageService {
 
         log.info("Cloudinary delete response: {}", result);
     }
+
+    public String uploadOrUpdateFamilyMember(MultipartFile file, UUID familyMemberId)
+        throws IOException {
+
+        Map<?, ?> result = cloudinary.uploader()
+            .upload(
+                file.getBytes(),
+                ObjectUtils.asMap(
+                    "folder",
+                    "nutriscan/family-members",
+                    "public_id",
+                    familyMemberId.toString(),
+                    "overwrite",
+                    true,
+                    "invalidate",
+                    true));
+
+        return result.get("secure_url").toString();
+    }
+    public String uploadOrUpdateUserProfile(MultipartFile file, UUID userId) throws IOException {
+
+        Map<?, ?> result = cloudinary.uploader()
+            .upload(
+                file.getBytes(),
+                ObjectUtils.asMap(
+                    "folder",
+                    "nutriscan/users",
+                    "public_id",
+                    userId.toString(),
+                    "overwrite",
+                    true,
+                    "invalidate",
+                    true));
+
+        return result.get("secure_url").toString();
+    }
+
 }

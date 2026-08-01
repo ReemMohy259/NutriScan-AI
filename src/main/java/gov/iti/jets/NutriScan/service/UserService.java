@@ -10,7 +10,9 @@ import gov.iti.jets.NutriScan.mapper.UserMapper;
 import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.AllergyRepository;
 import gov.iti.jets.NutriScan.repository.DiseaseRepository;
+import gov.iti.jets.NutriScan.repository.FamilyMemberRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
+import gov.iti.jets.NutriScan.util.ImageValidationUtils;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +63,8 @@ public class UserService {
     private final CloudinaryStorageService cloudinaryStorageService;
 
     private final AccountProperties accountProperties;
+
+    private final FamilyMemberRepository familyMemberRepository;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -168,26 +172,14 @@ public class UserService {
     @Transactional
     public CurrentUserProfileResponse uploadUserProfileImage(MultipartFile image, Jwt jwt) {
 
-        final long MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-
-        if (image == null || image.isEmpty())
-            throw new NoImageProvidedException("Image is required");
-
-        String contentType = image.getContentType();
-
-        if (contentType == null || !contentType.startsWith("image/"))
-            throw new InvalidImageException("Only image files are allowed");
-
-        if (image.getSize() > MAX_IMAGE_SIZE_BYTES)
-            throw new ImageTooLargeException("Image size must not exceed 5 MB");
-
+        ImageValidationUtils.validateImage(image);
         UUID userId = UUID.fromString(jwt.getClaim("sub"));
 
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
         try {
-            String url = cloudinaryStorageService.upload(image);
+            String url = cloudinaryStorageService.uploadOrUpdateUserProfile(image, userId);
             user.setImageUrl(url);
         } catch (IOException e) {
             throw new ImageUploadException("Failed to upload image");
@@ -625,5 +617,31 @@ public class UserService {
     @Transactional
     protected void deleteUserFromDatabase(User user) {
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public FamilyMemberResponse uploadUserFamilyMemberImage(
+        UUID familyMemberId,
+        MultipartFile image,
+        Jwt jwt) {
+
+        ImageValidationUtils.validateImage(image);
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+
+        FamilyMember familyMember = familyMemberRepository
+            .findByIdWAndUserIdWithDetails(familyMemberId, userId)
+            .orElseThrow(
+                () -> new FamilyMemberNotFoundException(
+                    "Family member not found with id: " + familyMemberId));
+
+        try {
+            String url = cloudinaryStorageService.uploadOrUpdateFamilyMember(image, familyMemberId);
+            familyMember.setImageUrl(url);
+
+            return familyMemberMapper.toResponse(familyMember);
+
+        } catch (IOException e) {
+            throw new ImageUploadException("Failed to upload image");
+        }
     }
 }
