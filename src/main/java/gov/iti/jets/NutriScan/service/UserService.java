@@ -387,7 +387,8 @@ public class UserService {
         Page<User> users;
 
         do {
-            users = userRepository.findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(page, 50));
+            users = userRepository
+                .findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(page, 50));
 
             if (users.isEmpty()) {
                 break;
