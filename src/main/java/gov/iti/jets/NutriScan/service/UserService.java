@@ -654,6 +654,7 @@ public class UserService {
 
     @Transactional
     protected void deleteUserFromDatabase(User user) {
+        // TODO: remove the family member image from cloudinary
         userRepository.delete(user);
     }
 
