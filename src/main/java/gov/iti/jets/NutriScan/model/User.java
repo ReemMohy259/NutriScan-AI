@@ -54,10 +54,10 @@ public class User {
     @BatchSize(size = 5)
     private Set<FamilyMember> familyMembers = new HashSet<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<DailyTracking> dailyTrackings = new HashSet<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<Scan> scans = new HashSet<>();
 
     @Column(name = "image_url")
@@ -77,7 +77,10 @@ public class User {
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @Column(name = "to_be_deleted_at")
-    private Instant toBeDeletedAt;
+    private LocalDate toBeDeletedAt;
+
+    @Column(name = "deletion_requested_at")
+    private Instant deletionRequestedAt;
 
     public void addAllergy(UserAllergy userAllergy) {
         if (userAllergy != null) {

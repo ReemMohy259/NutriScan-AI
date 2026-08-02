@@ -1,6 +1,6 @@
 package gov.iti.jets.NutriScan.dto;
 
-import java.time.Instant;
+import java.time.LocalDate;
 
-public record DeleteAccountResponse(Instant scheduledDeletionAt, int gracePeriodDays) {
+public record DeleteAccountResponse(LocalDate scheduledDeletionAt, int gracePeriodDays) {
 }

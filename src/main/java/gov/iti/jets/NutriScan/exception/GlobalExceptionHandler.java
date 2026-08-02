@@ -322,4 +322,20 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
+
+    @ExceptionHandler(GracePeriodExpiredException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidImageException(
+        GracePeriodExpiredException ex,
+        HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(HttpStatus.CONFLICT.value())
+            .error("ACCOUNT_DELETION_FINALIZED")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
 }
