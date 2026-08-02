@@ -326,7 +326,7 @@ public class UserService {
         while (true) {
             Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtLessThanEqual(
                 AccountStatus.PENDING_DELETION,
-                LocalDate.now(clock),
+                LocalDate.now(clock).plusDays(15),
                 PageRequest.of(0, 50));
 
             log.info("Found {} users to delete", users.getNumberOfElements());
@@ -387,8 +387,7 @@ public class UserService {
         Page<User> users;
 
         do {
-            users = userRepository
-                .findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(page, 50));
+            users = userRepository.findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(page, 50));
 
             if (users.isEmpty()) {
                 break;
