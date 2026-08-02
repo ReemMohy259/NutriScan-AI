@@ -29,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -65,6 +66,8 @@ public class UserService {
     private final AccountProperties accountProperties;
 
     private final FamilyMemberRepository familyMemberRepository;
+
+    private final Clock clock;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -287,6 +290,7 @@ public class UserService {
 
         userRepository.updateDailyStreak(userId, today, today.minusDays(1));
     }
+
     @Transactional
     public DeleteAccountResponse scheduleUserForDeletion(Jwt jwt) {
 
@@ -306,10 +310,11 @@ public class UserService {
         // logout the user and revoke his refresh token
         keycloak.realm(realmName).users().get(userId.toString()).logout();
 
-        Instant accountDeletionTime = Instant.now().plus(gracePeriodDays, ChronoUnit.DAYS);
+        LocalDate accountDeletionTime = LocalDate.now(clock).plusDays(gracePeriodDays);
 
         user.setAccountStatus(AccountStatus.PENDING_DELETION);
         user.setToBeDeletedAt(accountDeletionTime);
+        user.setDeletionRequestedAt(Instant.now(clock));
 
         return new DeleteAccountResponse(accountDeletionTime, gracePeriodDays);
     }
@@ -319,9 +324,9 @@ public class UserService {
         UsersResource usersResource = keycloak.realm(realmName).users();
 
         while (true) {
-            Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtBefore(
+            Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtLessThanEqual(
                 AccountStatus.PENDING_DELETION,
-                Instant.now(),
+                LocalDate.now(clock).plusDays(15),
                 PageRequest.of(0, 50));
 
             log.info("Found {} users to delete", users.getNumberOfElements());
@@ -330,14 +335,27 @@ public class UserService {
                 break;
             }
 
+            int successfulDeletes = 0;
+
             for (User user : users) {
                 try {
                     log.info("Deleting account {} permanently", user.getId());
                     permanentlyDeleteAccount(user, usersResource, userService);
                     log.info("Successfully deleted {}", user.getId());
+                    successfulDeletes++;
                 } catch (Exception ex) {
                     log.error("Failed deleting user {}", user.getId(), ex);
                 }
+            }
+
+            if (successfulDeletes == 0) {
+                log.error(
+                    """
+                        Account deletion stopped because no accounts could be deleted in the current batch.
+                        {} account(s) remain pending deletion.""",
+                    users.getNumberOfElements());
+
+                break;
             }
         }
 
@@ -352,33 +370,45 @@ public class UserService {
         log.info("Deleting resources from Cloudinary...");
         deleteCloudinaryResources(user.getImageUrl());
 
+        userService.deleteUserFromDatabase(user);
+
         log.info("Deleting from Keycloak...");
         deleteKeycloakAccount(usersResource, user.getId().toString());
-
-        userService.deleteUserFromDatabase(user);
     }
 
-    @Transactional
     public void reconcileAccounts(UserService userService) {
 
         UsersResource usersResource = keycloak.realm(realmName).users();
 
-        while (true) {
-            Page<User> users = userRepository
-                .findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(0, 50));
+        List<User> usersToBeDeleted = new ArrayList<>();
+
+        int page = 0;
+
+        Page<User> users;
+
+        do {
+            users = userRepository
+                .findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(page, 50));
 
             if (users.isEmpty()) {
                 break;
             }
 
             for (User user : users) {
-                try {
-                    if (!userExists(user.getId())) {
-                        permanentlyDeleteAccount(user, usersResource, userService);
-                    }
-                } catch (Exception ex) {
-                    log.error("Reconciling user with id [{}] failed.", user.getId(), ex);
+                if (!userExists(user.getId())) {
+                    usersToBeDeleted.add(user);
                 }
+            }
+
+            page++;
+
+        } while (!users.isEmpty());
+
+        for (User user : usersToBeDeleted) {
+            try {
+                permanentlyDeleteAccount(user, usersResource, userService);
+            } catch (Exception ex) {
+                log.error("Failed deleting reconciled user {}", user.getId(), ex);
             }
         }
     }
@@ -394,11 +424,19 @@ public class UserService {
 
         if (user.getAccountStatus() != AccountStatus.PENDING_DELETION) {
             throw new AccountNotPendingDeletionException(
-                "This account is not marked fro deletion.");
+                "This account is not marked for deletion.");
+        }
+
+        LocalDate deletionDate = user.getToBeDeletedAt();
+
+        if (!LocalDate.now(clock).isBefore(deletionDate)) {
+            throw new GracePeriodExpiredException(
+                "The account can no longer be restored because the deletion grace period has expired.");
         }
 
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setToBeDeletedAt(null);
+        user.setDeletionRequestedAt(null);
 
         return new RestoreAccountResponse("Your account has been restored.", Instant.now());
     }
