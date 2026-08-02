@@ -19,8 +19,37 @@ public interface DailyTrackingRepository extends JpaRepository<DailyTracking, In
         @Param("date") LocalDate date);
 
     @Query("""
+        select distinct dt
+        from DailyTracking dt
+        left join fetch dt.meals m
+        left join fetch m.scan s
+        left join fetch s.nutritionFact
+        where dt.user.id = :userId
+          and dt.date = :date
+        """)
+    Optional<DailyTracking> findWithFetchingByUserIdAndDate(
+        @Param("userId") UUID userId,
+        @Param("date") LocalDate date);
+
+    @Query("""
         select new gov.iti.jets.NutriScan.dto.DailyTrackingSummaryResponse(
-            dt.id, dt.date, dt.targetWaterCnt, dt.waterCnt, dt.stepsCnt, size(dt.meals))
+            dt.id,
+            dt.date,
+            dt.targetWaterCnt,
+            dt.waterCnt,
+            dt.stepsCnt,
+            dt.stepsKcal,
+            dt.exerciseKcal,
+            dt.exerciseMin,
+            cast(coalesce((
+                select sum(m.mealCnt * nf.calories)
+                from DailyTrackingMeal m
+                join m.scan.nutritionFact nf
+                where m.dailyTracking = dt
+                and nf.calories is not null
+            ), 0) as long),
+            size(dt.meals)
+        )
         from DailyTracking dt
         where dt.user.id = :userId
         order by dt.date desc
@@ -28,17 +57,6 @@ public interface DailyTrackingRepository extends JpaRepository<DailyTracking, In
     Page<DailyTrackingSummaryResponse> findSummaryByUserId(
         @Param("userId") UUID userId,
         Pageable pageable);
-
-    @Query("""
-        select distinct dt
-        from DailyTracking dt
-        left join fetch dt.meals m
-        left join fetch m.scan s
-        where dt.id = :id and dt.user.id = :userId
-        """)
-    Optional<DailyTracking> findByIdWithMealsAndScans(
-        @Param("id") Integer id,
-        @Param("userId") UUID userId);
 
     void deleteByUserIdAndDate(UUID userId, LocalDate date);
 }

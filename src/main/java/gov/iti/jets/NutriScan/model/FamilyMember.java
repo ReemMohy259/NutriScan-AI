@@ -29,6 +29,9 @@ public class FamilyMember {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @OneToMany(mappedBy = "familyMember", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<FamilyMemberAllergy> allergies = new HashSet<>();
 

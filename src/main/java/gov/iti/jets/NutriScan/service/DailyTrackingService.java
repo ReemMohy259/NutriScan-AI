@@ -37,7 +37,8 @@ public class DailyTrackingService {
         UUID userId = UUID.fromString(jwt.getSubject());
         LocalDate today = LocalDate.now();
 
-        DailyTracking dailyTracking = dailyTrackingRepository.findByUserIdAndDate(userId, today)
+        DailyTracking dailyTracking = dailyTrackingRepository
+            .findWithFetchingByUserIdAndDate(userId, today)
             .orElseGet(() -> createDailyTracking(userId, today));
 
         return dailyTrackingMapper.toResponse(dailyTracking);
@@ -47,13 +48,7 @@ public class DailyTrackingService {
         UUID userId = UUID.fromString(jwt.getSubject());
 
         DailyTracking dailyTracking = dailyTrackingRepository
-            .findByIdWithMealsAndScans(
-                dailyTrackingRepository.findByUserIdAndDate(userId, date)
-                    .orElseThrow(
-                        () -> new DailyTrackingNotFoundException(
-                            "Daily tracking not found for date: " + date))
-                    .getId(),
-                userId)
+            .findWithFetchingByUserIdAndDate(userId, date)
             .orElseThrow(
                 () -> new DailyTrackingNotFoundException(
                     "Daily tracking not found for date: " + date));
@@ -73,7 +68,8 @@ public class DailyTrackingService {
         DailyTrackingRequest request) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        DailyTracking dailyTracking = dailyTrackingRepository.findByUserIdAndDate(userId, date)
+        DailyTracking dailyTracking = dailyTrackingRepository
+            .findWithFetchingByUserIdAndDate(userId, date)
             .orElseThrow(
                 () -> new DailyTrackingNotFoundException(
                     "Daily tracking not found for date: " + date));
@@ -86,6 +82,15 @@ public class DailyTrackingService {
         }
         if (request.stepsCnt() != null) {
             dailyTracking.setStepsCnt(request.stepsCnt());
+        }
+        if (request.stepsKcal() != null) {
+            dailyTracking.setStepsKcal(request.stepsKcal());
+        }
+        if (request.exerciseKcal() != null) {
+            dailyTracking.setExerciseKcal(request.exerciseKcal());
+        }
+        if (request.exerciseMin() != null) {
+            dailyTracking.setExerciseMin(request.exerciseMin());
         }
 
         return dailyTrackingMapper.toResponse(dailyTracking);
