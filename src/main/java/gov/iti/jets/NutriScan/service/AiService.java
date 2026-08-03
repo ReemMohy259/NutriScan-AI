@@ -73,6 +73,30 @@ public class AiService {
             .entity(FoodSafetyResponse.class);
     }
 
+    public FoodSafetyResponse checkBarcodeSafety(BarCodeSafetyPrompt requestData) {
+
+        String userPrompt = """
+            Analyze the product ingredients from OpenFoodFacts and check if they are safe
+            for consumption with the following context:
+            product: %s (barcode: %s)
+            ingredients: %s
+            user allergies: %s
+            user medical conditions: %s
+            """.formatted(
+                requestData.productName(),
+                requestData.barcode(),
+                requestData.ingredients(),
+                requestData.allergies(),
+                requestData.conditions()
+            );
+
+        return opencodeChatClient.prompt()
+            .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
+            .user(userPrompt)
+            .call()
+            .entity(FoodSafetyResponse.class);
+    }
+
     public MealFoodSafetyResponse mealCheckSafety(
         byte[] bytes,
         String contentType,

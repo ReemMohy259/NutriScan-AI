@@ -94,6 +94,19 @@ public class ScanController {
         return openFoodFactsService.getProduct(request.barcode());
     }
 
+    @PostMapping(value = "/barcode/scan")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ResponseEntity<ScanSubmitResponse> scanBarcode(
+        @AuthenticationPrincipal Jwt jwt,
+        @Valid @RequestBody BarCodeRequest request) {
+
+        ScanSubmitResponse result = scanService.addNewBarcodeScan(jwt, request.barcode());
+
+        scanService.processBarcodeScan(jwt, result.scanId(), request.barcode());
+
+        return ResponseEntity.accepted().body(result);
+    }
+
     @GetMapping
     public Page<ScanSummaryResponse> getScans(
         @AuthenticationPrincipal Jwt jwt,
