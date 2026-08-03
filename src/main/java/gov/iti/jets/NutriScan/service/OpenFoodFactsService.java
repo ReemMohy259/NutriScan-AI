@@ -5,7 +5,6 @@ import gov.iti.jets.NutriScan.dto.ai.barcode.BarCodeNutrimentsDto;
 import gov.iti.jets.NutriScan.dto.ai.barcode.BarCodeProductDto;
 import gov.iti.jets.NutriScan.dto.ai.barcode.BarCodeResponseDto;
 import gov.iti.jets.NutriScan.exception.BarCodeNotFoundException;
-import gov.iti.jets.NutriScan.exception.NonEdibleProductException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,7 +14,6 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,34 +24,6 @@ public class OpenFoodFactsService {
     private final RestTemplate restTemplate;
 
     private static final String URL = "https://world.openfoodfacts.org/api/v2/product/%s.json";
-
-    // Broader set of edible category prefixes - OpenFoodFacts uses many variations
-    private static final Set<String> EDIBLE_CATEGORY_PREFIXES = Set.of(
-            // Main food categories
-            "en:alcoholic-beverages", "en:baking", "en:beverages", "en:biscuits",
-            "en:biscuits-and-cakes", "en:bread", "en:breakfast", "en:breakfast-cereals",
-            "en:broths",
-            "en:butter", "en:cakes", "en:candy",
-            "en:canned", "en:cereal-bars", "en:cereals", "en:cheese",
-            "en:chocolate", "en:coffee", "en:condiments", "en:confectionery",
-            "en:cookies", "en:cream", "en:dairies", "en:dairy",
-            "en:desserts", "en:dressings", "en:eggs", "en:energy-drinks", "en:fats",
-            "en:fish", "en:flour", "en:food", "en:frozen",
-            "en:fruits", "en:grains", "en:herbal-tea",
-            "en:honey", "en:ice-cream", "en:jam", "en:juices",
-            "en:legumes", "en:meals",
-            "en:meat", "en:meat-substitutes", "en:milk",
-            "en:milk-substitutes", "en:nuts", "en:oils",
-            "en:pasta", "en:pastries",
-            "en:pickles", "en:plant-based-foods", "en:prepared-meals", "en:preserves",
-            "en:processed-meats", "en:ready-meals", "en:rice",
-            "en:sauces", "en:seafood", "en:seeds",
-            "en:snacks", "en:soft-drinks", "en:soups", "en:spices",
-            "en:sports-drinks", "en:spreads", "en:stocks",
-            "en:sugar", "en:sugars", "en:tea",
-            "en:vegetable-fats", "en:vegetables", "en:vegetarian",
-            "en:vinegars", "en:water", "en:yogurt"
-    );
 
     public BarCodeProductDto getProduct(String barcode) {
 
@@ -80,7 +50,8 @@ public class OpenFoodFactsService {
             log.info("Nova Group: {}", product.getNovaGroup());
             log.info("Image URL: {}", product.getImageUrl());
             if (product.getNutriments() != null) {
-                log.info("Nutriments: energy_kcal_100g={}, proteins_100g={}, carbohydrates_100g={}, fat_100g={}, fiber_100g={}, sugars_100g={}, sodium_100g={}, salt_100g={}, saturated_fat_100g={}",
+                log.info(
+                    "Nutriments: energy_kcal_100g={}, proteins_100g={}, carbohydrates_100g={}, fat_100g={}, fiber_100g={}, sugars_100g={}, sodium_100g={}, salt_100g={}, saturated_fat_100g={}",
                     product.getNutriments().getEnergyKcal100g(),
                     product.getNutriments().getProteins100g(),
                     product.getNutriments().getCarbohydrates100g(),
@@ -103,29 +74,10 @@ public class OpenFoodFactsService {
         }
     }
 
-    public void validateEdibleProduct(BarCodeProductDto product) {
-        if (product.getCategoriesTags() == null || product.getCategoriesTags().isEmpty()) {
-            log.warn("Product has no category information: {}", product.getProductName());
-            throw new NonEdibleProductException("Product has no category information");
-        }
-
-        log.info("Validating product edibility. Categories: {}", product.getCategoriesTags());
-
-        boolean isEdible = product.getCategoriesTags().stream()
-            .anyMatch(tag -> EDIBLE_CATEGORY_PREFIXES.stream().anyMatch(tag::startsWith));
-
-        if (!isEdible) {
-            log.warn("Product marked as NON-EDIBLE. Categories: {}, Product: {}", 
-                product.getCategoriesTags(), product.getProductName());
-            throw new NonEdibleProductException("Scanned product is not a food or beverage item");
-        }
-
-        log.info("Product validated as EDIBLE: {}", product.getProductName());
-    }
-
     public List<String> extractIngredients(BarCodeProductDto product) {
         if (product.getIngredientsTags() != null && !product.getIngredientsTags().isEmpty()) {
-            List<String> ingredients = product.getIngredientsTags().stream()
+            List<String> ingredients = product.getIngredientsTags()
+                .stream()
                 .map(tag -> tag.replace("en:", "").replace("-", " "))
                 .collect(Collectors.toList());
             log.info("Extracted {} ingredients from tags: {}", ingredients.size(), ingredients);
@@ -152,12 +104,24 @@ public class OpenFoodFactsService {
             return null;
         }
 
-        Integer calories = nutriments.getEnergyKcal100g() != null ? nutriments.getEnergyKcal100g().intValue() : null;
-        BigDecimal proteinGrams = nutriments.getProteins100g() != null ? BigDecimal.valueOf(nutriments.getProteins100g()) : null;
-        BigDecimal carbsGrams = nutriments.getCarbohydrates100g() != null ? BigDecimal.valueOf(nutriments.getCarbohydrates100g()) : null;
-        BigDecimal fatG = nutriments.getFat100g() != null ? BigDecimal.valueOf(nutriments.getFat100g()) : null;
-        BigDecimal fiberGrams = nutriments.getFiber100g() != null ? BigDecimal.valueOf(nutriments.getFiber100g()) : null;
-        BigDecimal sugarG = nutriments.getSugars100g() != null ? BigDecimal.valueOf(nutriments.getSugars100g()) : null;
+        Integer calories = nutriments.getEnergyKcal100g() != null
+            ? nutriments.getEnergyKcal100g().intValue()
+            : null;
+        BigDecimal proteinGrams = nutriments.getProteins100g() != null
+            ? BigDecimal.valueOf(nutriments.getProteins100g())
+            : null;
+        BigDecimal carbsGrams = nutriments.getCarbohydrates100g() != null
+            ? BigDecimal.valueOf(nutriments.getCarbohydrates100g())
+            : null;
+        BigDecimal fatG = nutriments.getFat100g() != null
+            ? BigDecimal.valueOf(nutriments.getFat100g())
+            : null;
+        BigDecimal fiberGrams = nutriments.getFiber100g() != null
+            ? BigDecimal.valueOf(nutriments.getFiber100g())
+            : null;
+        BigDecimal sugarG = nutriments.getSugars100g() != null
+            ? BigDecimal.valueOf(nutriments.getSugars100g())
+            : null;
         BigDecimal sodiumMg = null;
         if (nutriments.getSodium100g() != null) {
             sodiumMg = BigDecimal.valueOf(nutriments.getSodium100g() * 1000);
@@ -165,9 +129,23 @@ public class OpenFoodFactsService {
             sodiumMg = BigDecimal.valueOf(nutriments.getSalt100g() * 1000 * 0.4);
         }
 
-        NutritionFactsDto dto = new NutritionFactsDto(calories, proteinGrams, carbsGrams, fatG, fiberGrams, sugarG, sodiumMg);
-        log.info("Extracted nutrition facts (per 100g): calories={}, protein={}g, carbs={}g, fat={}g, fiber={}g, sugar={}g, sodium={}mg",
-            calories, proteinGrams, carbsGrams, fatG, fiberGrams, sugarG, sodiumMg);
+        NutritionFactsDto dto = new NutritionFactsDto(
+            calories,
+            proteinGrams,
+            carbsGrams,
+            fatG,
+            fiberGrams,
+            sugarG,
+            sodiumMg);
+        log.info(
+            "Extracted nutrition facts (per 100g): calories={}, protein={}g, carbs={}g, fat={}g, fiber={}g, sugar={}g, sodium={}mg",
+            calories,
+            proteinGrams,
+            carbsGrams,
+            fatG,
+            fiberGrams,
+            sugarG,
+            sodiumMg);
         return dto;
     }
 }

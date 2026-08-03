@@ -79,16 +79,17 @@ public class AiService {
             Analyze the product ingredients from OpenFoodFacts and check if they are safe
             for consumption with the following context:
             product: %s (barcode: %s)
+            categories: %s
             ingredients: %s
             user allergies: %s
             user medical conditions: %s
             """.formatted(
-                requestData.productName(),
-                requestData.barcode(),
-                requestData.ingredients(),
-                requestData.allergies(),
-                requestData.conditions()
-            );
+            requestData.productName(),
+            requestData.barcode(),
+            requestData.categories(),
+            requestData.ingredients(),
+            requestData.allergies(),
+            requestData.conditions());
 
         return opencodeChatClient.prompt()
             .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)

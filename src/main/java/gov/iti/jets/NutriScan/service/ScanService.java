@@ -221,10 +221,6 @@ public class ScanService {
             BarCodeProductDto product = openFoodFactsService.getProduct(barcode);
             log.info("Product fetched: {}", product.getProductName());
 
-            log.debug("Validating product is edible");
-            openFoodFactsService.validateEdibleProduct(product);
-            log.info("Product validated as edible");
-
             log.debug("Extracting ingredients");
             List<String> ingredients = openFoodFactsService.extractIngredients(product);
             log.info("Extracted {} ingredients: {}", ingredients.size(), ingredients);
@@ -240,32 +236,35 @@ public class ScanService {
             log.debug("Fetching user allergies and conditions");
             UserAllergiesAndConditionsResponse userData = userService
                 .getUserAllergiesAndConditions(userId);
-            log.debug("User allergies: {}, conditions: {}", userData.getAllergies(), userData.getDiseases());
+            log.debug(
+                "User allergies: {}, conditions: {}",
+                userData.getAllergies(),
+                userData.getDiseases());
 
             log.debug("Calling AI safety check");
             FoodSafetyResponse result = aiService.checkBarcodeSafety(
                 new BarCodeSafetyPrompt(
                     barcode,
                     product.getProductName(),
+                    product.getCategoriesTags(),
                     ingredients,
                     userData.getAllergies(),
                     userData.getDiseases()));
-            log.info("AI safety check completed: verdict={}, flaggedCount={}", 
-                result.verdict(), result.flaggedIngredients().size());
+            log.info(
+                "AI safety check completed: verdict={}, flaggedCount={}",
+                result.verdict(),
+                result.flaggedIngredients().size());
 
             updateCompletedScanFromBarcode(product, scan, result, nutritionFacts, userId);
 
             long endTime = System.nanoTime();
             long durationInMilliseconds = (endTime - startTime) / 1_000_000;
-            log.info("Barcode scan completed in {} ms for scanId: {}", durationInMilliseconds, scanId);
+            log.info(
+                "Barcode scan completed in {} ms for scanId: {}",
+                durationInMilliseconds,
+                scanId);
         } catch (BarCodeNotFoundException e) {
             log.warn("Barcode not found: {}", e.getMessage());
-            scan.setStatus(ScanStatus.FAILED);
-
-            eventPublisher
-                .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.FAILED));
-        } catch (NonEdibleProductException e) {
-            log.warn("Non-edible product: {}", e.getMessage());
             scan.setStatus(ScanStatus.FAILED);
 
             eventPublisher

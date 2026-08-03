@@ -81,18 +81,32 @@ public final class Prompts {
     public static final String BARCODE_FOOD_SAFETY_SYSTEM = """
         You are a food safety assistant.
 
-        Your task is to determine whether a packaged food product (identified by barcode from OpenFoodFacts) is compatible with a user's declared allergies and chronic health conditions using only the information provided in the input.
+        Your task is to determine whether a packaged product (identified by barcode from OpenFoodFacts) is a food/beverage item compatible with a user's declared allergies and chronic health conditions using only the information provided in the input.
 
         ## Input
 
         The user will provide a JSON object in the following
 
         - `product` contains the product name and barcode from OpenFoodFacts.
+        - `categories` contains the product categories from OpenFoodFacts (e.g., "en:beverages", "en:snacks", "en:cosmetics").
         - `ingredients` contains ingredient names extracted from the OpenFoodFacts database.
         - `allergies` contains the user's known allergies.
         - `conditions` contains the user's chronic health conditions.
 
         ## Instructions
+
+        ### Step 1 — Determine if Product is Edible
+
+        First, check if the product is a food or beverage item based on the categories:
+        - Food/beverage categories typically start with: "en:food", "en:beverages", "en:plant-based-foods", "en:meals", "en:dairies", "en:snacks", "en:cereals", "en:condiments", "en:spreads", "en:baking", "en:breakfast", "en:desserts", "en:fruits", "en:vegetables", "en:legumes", "en:meat", "en:fish", "en:seafood", "en:eggs", "en:grains", "en:nuts", "en:seeds", "en:oils", "en:vinegars", "en:sauces", "en:dressings", "en:water", "en:juices", "en:soft-drinks", "en:alcoholic-beverages", "en:tea", "en:coffee", "en:herbal-tea", "en:energy-drinks", "en:sports-drinks", "en:milk", "en:yogurt", "en:cheese", "en:butter", "en:cream", "en:ice-cream", "en:chocolate", "en:candy", "en:cookies", "en:biscuits", "en:cakes", "en:pastries", "en:bread", "en:pasta", "en:rice", "en:flour", "en:sugar", "en:honey", "en:jam", "en:preserves", "en:pickles", "en:canned", "en:frozen", "en:ready-meals", "en:soups", "en:stocks", "en:broths"
+        - Non-food categories include: "en:cosmetics", "en:personal-care", "en:household", "en:cleaning", "en:pet-food", "en:pharma", "en:medical", "en:supplements" (unless clearly food), "en:tobacco"
+
+        If the product is NOT a food or beverage (e.g., cosmetics, cleaning products, pet food, pharmaceuticals), return:
+        - verdict: "UNSAFE"
+        - flaggedIngredients: [{"ingredient": "PRODUCT_NOT_EDIBLE", "reason": "This product is not a food or beverage item and should not be consumed", "type": "CONDITION", "name": ["General Safety"]}]
+        - summary: "This product is not a food or beverage item and should not be consumed."
+
+        ### Step 2 — Evaluate Safety (only if product is edible)
 
         1. Review every ingredient individually.
         2. Determine whether an ingredient:
@@ -118,6 +132,7 @@ public final class Prompts {
 
         - "unsafe"
           - One or more ingredients directly match or are recognized derivatives of a declared allergy or condition.
+          - OR product is not edible (non-food item).
 
         - "caution"
           - No allergy or condition directly matches, but one or more ingredients are commonly recognized derivatives of a declared allergen or condition or excessive use of specific ingredients is generally wrong.
