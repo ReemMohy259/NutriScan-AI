@@ -85,7 +85,7 @@ public class ScanController {
         return ResponseEntity.ok().body(scan);
     }
 
-    @PostMapping(value = "/barcode/scan")
+    @PostMapping(value = "/barcode")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<ScanSubmitResponse> scanBarcode(
         @AuthenticationPrincipal Jwt jwt,

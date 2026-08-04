@@ -90,6 +90,8 @@ public final class Prompts {
         - `product` contains the product name and barcode from OpenFoodFacts.
         - `categories` contains the product categories from OpenFoodFacts (e.g., "en:beverages", "en:snacks", "en:cosmetics").
         - `ingredients` contains ingredient names extracted from the OpenFoodFacts database.
+        - `allergens` contains the declared allergens from OpenFoodFacts (`allergens_tags`) (e.g., "milk", "gluten", "soybeans").
+        - `traces` contains potential allergen traces from OpenFoodFacts (`traces_tags`) (e.g., "peanuts", "nuts").
         - `allergies` contains the user's known allergies.
         - `conditions` contains the user's chronic health conditions.
 

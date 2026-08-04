@@ -148,4 +148,32 @@ public class OpenFoodFactsService {
             sodiumMg);
         return dto;
     }
+    public List<String> extractAllergens(BarCodeProductDto product) {
+        if (product.getAllergensTags() != null && !product.getAllergensTags().isEmpty()) {
+
+            List<String> allergens = product.getAllergensTags()
+                .stream()
+                .map(tag -> tag.replace("en:", "").replace("-", " "))
+                .map(String::trim)
+                .collect(Collectors.toList());
+
+            log.info("Extracted {} allergens: {}", allergens.size(), allergens);
+            return allergens;
+        }
+
+        log.info("No allergens found for product: {}", product.getProductName());
+        return List.of();
+    }
+
+    public List<String> extractTraces(BarCodeProductDto product) {
+        if (product.getTracesTags() == null) {
+            return List.of();
+        }
+
+        return product.getTracesTags()
+            .stream()
+            .map(tag -> tag.replace("en:", "").replace("-", " "))
+            .toList();
+    }
+
 }

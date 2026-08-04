@@ -78,6 +78,8 @@ public class AiService {
             Analyze the product ingredients from OpenFoodFacts and check if they are safe
             for consumption with the following context:
             product: %s (barcode: %s)
+            Declared allergens from OpenFoodFacts: %s
+            Possible allergen traces from OpenFoodFacts: %s
             categories: %s
             ingredients: %s
             user allergies: %s
@@ -85,8 +87,10 @@ public class AiService {
             """.formatted(
             requestData.productName(),
             requestData.barcode(),
+            requestData.allergens(),
             requestData.categories(),
             requestData.ingredients(),
+            requestData.traces(),
             requestData.allergies(),
             requestData.conditions());
 

@@ -240,6 +240,10 @@ public class ScanService {
             NutritionFactsDto nutritionFacts = openFoodFactsService.extractNutritionFacts(product);
             log.info("Nutrition facts extracted: {}", nutritionFacts);
 
+            log.debug("Extracting allergens");
+            List<String> allergens = openFoodFactsService.extractAllergens(product);
+
+            List<String> traces = openFoodFactsService.extractTraces(product);
             log.debug("Fetching user allergies and conditions");
             UserAllergiesAndConditionsResponse userData = userService
                 .getUserAllergiesAndConditions(userId);
@@ -256,7 +260,9 @@ public class ScanService {
                     product.getCategoriesTags(),
                     ingredients,
                     userData.getAllergies(),
-                    userData.getDiseases()));
+                    userData.getDiseases(),
+                    allergens,
+                    traces));
             log.info(
                 "AI safety check completed: verdict={}, flaggedCount={}",
                 result.verdict(),
