@@ -328,8 +328,8 @@ public final class Prompts {
                  - Use the search result with your knowledge to extract the ingredients and nutrition facts of the product.
                  - If nutrition facts are not available from the search result or reliable internal knowledge, return null for nutritionFacts.
                  - Extract all available ingredients from search and internal knowledge.
-                 - If you can't extract nutrition facts from the search result, try to estimate the nutrition facts if you can else return null not empty data.
-                 - This is raw search data you have to filter it first to match the product.
+                 - If you can't extract nutrition facts return null for nutritionFacts.
+                 - This is raw search data you have to filter it first to match the product size and flavor.
                  - Make sure that the ingredients match the product if the web result gives you wrong product data don't put it
                  - Partial nutrition facts are allowed. For example, if calories and protein are available but other values are missing, return those fields and set missing fields to null.
                  - Try to make sure that the data match the product name and the flavor if available
