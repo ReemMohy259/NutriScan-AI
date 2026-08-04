@@ -65,7 +65,7 @@ public class ScanService {
     }
 
     @Transactional
-    public ScanSubmitResponse addNewBarcodeScan(Jwt jwt, String barcode) {
+    public ScanSubmitResponse addNewBarcodeScan(Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
         User user = userRepository.getReferenceById(userId);
@@ -123,11 +123,12 @@ public class ScanService {
                 System.out.println("--------------------------------------------------------");
 
                 updateCompletedScan(
-                    ocrResponse,
+                    ocrResponse.getProductName(),
                     scan,
                     response.foodSafetyResponse(),
                     response.nutritionFacts(),
-                    userId);
+                    userId,
+                    null);
 
                 return;
             }
@@ -158,7 +159,13 @@ public class ScanService {
                     userData.getAllergies(),
                     userData.getDiseases()));
 
-            updateCompletedScan(ocrResponse, scan, result, ocrResponse.getNutritionFacts(), userId);
+            updateCompletedScan(
+                ocrResponse.getProductName(),
+                scan,
+                result,
+                ocrResponse.getNutritionFacts(),
+                userId,
+                null);
 
             long endTime = System.nanoTime();
             long durationInMilliseconds = (endTime - startTime) / 1_000_000;
@@ -224,7 +231,7 @@ public class ScanService {
             log.debug("Extracting ingredients");
             List<String> ingredients = openFoodFactsService.extractIngredients(product);
             log.info("Extracted {} ingredients: {}", ingredients.size(), ingredients);
-            if (ingredients == null || ingredients.isEmpty()) {
+            if (ingredients.isEmpty()) {
                 log.warn("No ingredients found for product: {}", product.getProductName());
                 throw new IngredientParsingException("No ingredients found for this product");
             }
@@ -255,7 +262,13 @@ public class ScanService {
                 result.verdict(),
                 result.flaggedIngredients().size());
 
-            updateCompletedScanFromBarcode(product, scan, result, nutritionFacts, userId);
+            updateCompletedScan(
+                product.getProductName(),
+                scan,
+                result,
+                nutritionFacts,
+                userId,
+                product.getImageUrl());
 
             long endTime = System.nanoTime();
             long durationInMilliseconds = (endTime - startTime) / 1_000_000;
@@ -284,67 +297,32 @@ public class ScanService {
         }
     }
 
-    private void updateCompletedScanFromBarcode(
-        BarCodeProductDto product,
+    private void updateCompletedScan(
+        String productName,
         Scan scan,
         FoodSafetyResponse response,
         NutritionFactsDto nutritionFacts,
-        UUID userId) {
+        UUID userId,
+        String imageUrl) {
 
         System.out.println("--------------------------------------------------------");
         System.out.println(response);
         System.out.println(nutritionFacts);
         System.out.println("--------------------------------------------------------");
 
-        scan.setProductName(product.getProductName());
+        scan.setProductName(productName);
         scan.setStatus(ScanStatus.COMPLETED);
         scan.setVerdict(response.verdict());
         scan.setSummary(response.summary());
         scan.getScanFlaggedIngredients().clear();
 
-        System.out.println(nutritionFacts);
-
-        if (nutritionFacts != null) {
-            NutritionFact nutritionFact = nutritionFactMapper.toEntity(nutritionFacts);
-            nutritionFact.setScans(scan);
-            scan.setNutritionFact(nutritionFact);
+        if (imageUrl != null) {
+            scan.setImageUrl(imageUrl);
         }
 
-        response.flaggedIngredients()
-            .forEach(
-                flaggedIngredient -> scan.addFlaggedIngredient(
-                    ScanFlaggedIngredient.builder()
-                        .conditionName(String.join(", ", flaggedIngredient.name()))
-                        .ingredientName(flaggedIngredient.ingredient())
-                        .type(flaggedIngredient.type().name())
-                        .reason(flaggedIngredient.reason())
-                        .build()));
-
-        eventPublisher
-            .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.COMPLETED));
-    }
-
-    private void updateCompletedScan(
-        OcrResponseDto ocrResponse,
-        Scan scan,
-        FoodSafetyResponse response,
-        NutritionFactsDto nutritionFacts,
-        UUID userId) {
-
-        System.out.println("--------------------------------------------------------");
-        System.out.println(response);
-        System.out.println(nutritionFacts);
-        System.out.println("--------------------------------------------------------");
-
-        scan.setProductName(ocrResponse.getProductName());
-        scan.setStatus(ScanStatus.COMPLETED);
-        scan.setVerdict(response.verdict());
-        scan.setSummary(response.summary());
-        scan.getScanFlaggedIngredients().clear();
-
         System.out.println(nutritionFacts);
 
-        if (nutritionFacts != null) {
+        if (!nutritionFacts.isEmpty()) {
             NutritionFact nutritionFact = nutritionFactMapper.toEntity(nutritionFacts);
             nutritionFact.setScans(scan);
             scan.setNutritionFact(nutritionFact);

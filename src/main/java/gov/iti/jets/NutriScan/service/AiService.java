@@ -1,7 +1,7 @@
 package gov.iti.jets.NutriScan.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import gov.iti.jets.NutriScan.ai.bedrock.BedrockGatewayStructuredChatClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.iti.jets.NutriScan.ai.bedrock.StructuredChatClient;
 import gov.iti.jets.NutriScan.ai.foodsafety.FoodSafetyJsonSchema;
 import gov.iti.jets.NutriScan.dto.ai.*;
@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class AiService {
