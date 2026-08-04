@@ -10,6 +10,5 @@ public interface StructuredChatClient {
         String schemaName,
         JsonNode jsonSchema,
         int maxTokens,
-        Class<T> responseType
-    );
+        Class<T> responseType);
 }

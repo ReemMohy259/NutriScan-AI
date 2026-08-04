@@ -2,6 +2,7 @@ package gov.iti.jets.NutriScan.service;
 
 import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.dto.ai.*;
+import gov.iti.jets.NutriScan.dto.ai.barcode.BarCodeProductDto;
 import gov.iti.jets.NutriScan.exception.*;
 import gov.iti.jets.NutriScan.mapper.NutritionFactMapper;
 import gov.iti.jets.NutriScan.mapper.ScanMapper;
@@ -13,6 +14,7 @@ import gov.iti.jets.NutriScan.repository.ScanRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -28,6 +30,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ScanService {
     private final AiService aiService;
 
@@ -38,6 +41,7 @@ public class ScanService {
     private final CloudinaryStorageService cloudinaryStorageService;
     private final NutritionFactMapper nutritionFactMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final OpenFoodFactsService openFoodFactsService;
 
     @Transactional
     public ScanSubmitResponse addNewScan(Jwt jwt, MultipartFile file) {
@@ -54,6 +58,20 @@ public class ScanService {
         } catch (IOException e) {
             throw new ImageUploadException("Failed to upload image");
         }
+
+        Scan scanEntity = scanRepository.save(scan);
+
+        return new ScanSubmitResponse(scanEntity.getId(), scanEntity.getStatus());
+    }
+
+    @Transactional
+    public ScanSubmitResponse addNewBarcodeScan(Jwt jwt) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        User user = userRepository.getReferenceById(userId);
+        Scan scan = new Scan();
+        scan.setUser(user);
+        scan.setStatus(ScanStatus.PROCESSING);
 
         Scan scanEntity = scanRepository.save(scan);
 
@@ -105,11 +123,12 @@ public class ScanService {
                 System.out.println("--------------------------------------------------------");
 
                 updateCompletedScan(
-                    ocrResponse,
+                    ocrResponse.getProductName(),
                     scan,
                     response.foodSafetyResponse(),
                     response.nutritionFacts(),
-                    userId);
+                    userId,
+                    null);
 
                 return;
             }
@@ -140,7 +159,13 @@ public class ScanService {
                     userData.getAllergies(),
                     userData.getDiseases()));
 
-            updateCompletedScan(ocrResponse, scan, result, ocrResponse.getNutritionFacts(), userId);
+            updateCompletedScan(
+                ocrResponse.getProductName(),
+                scan,
+                result,
+                ocrResponse.getNutritionFacts(),
+                userId,
+                null);
 
             long endTime = System.nanoTime();
             long durationInMilliseconds = (endTime - startTime) / 1_000_000;
@@ -185,27 +210,125 @@ public class ScanService {
         }
     }
 
+    @Async("asyncExecutor")
+    @Transactional
+    public void processBarcodeScan(Jwt jwt, UUID scanId, String barcode) {
+
+        long startTime = System.nanoTime();
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        log.info("Starting barcode scan processing for scanId: {}, barcode: {}", scanId, barcode);
+
+        Scan scan = scanRepository.findById(scanId)
+            .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
+
+        try {
+            log.debug("Fetching product from OpenFoodFacts for barcode: {}", barcode);
+            BarCodeProductDto product = openFoodFactsService.getProduct(barcode);
+            log.info("Product fetched: {}", product.getProductName());
+
+            log.debug("Extracting ingredients");
+            List<String> ingredients = openFoodFactsService.extractIngredients(product);
+            log.info("Extracted {} ingredients: {}", ingredients.size(), ingredients);
+            if (ingredients.isEmpty()) {
+                log.warn("No ingredients found for product: {}", product.getProductName());
+                throw new IngredientParsingException("No ingredients found for this product");
+            }
+
+            log.debug("Extracting nutrition facts");
+            NutritionFactsDto nutritionFacts = openFoodFactsService.extractNutritionFacts(product);
+            log.info("Nutrition facts extracted: {}", nutritionFacts);
+
+            log.debug("Extracting allergens");
+            List<String> allergens = openFoodFactsService.extractAllergens(product);
+
+            List<String> traces = openFoodFactsService.extractTraces(product);
+            log.debug("Fetching user allergies and conditions");
+            UserAllergiesAndConditionsResponse userData = userService
+                .getUserAllergiesAndConditions(userId);
+            log.debug(
+                "User allergies: {}, conditions: {}",
+                userData.getAllergies(),
+                userData.getDiseases());
+
+            log.debug("Calling AI safety check");
+            FoodSafetyResponse result = aiService.checkBarcodeSafety(
+                new BarCodeSafetyPrompt(
+                    barcode,
+                    product.getProductName(),
+                    product.getCategoriesTags(),
+                    ingredients,
+                    userData.getAllergies(),
+                    userData.getDiseases(),
+                    allergens,
+                    traces));
+            log.info(
+                "AI safety check completed: verdict={}, flaggedCount={}",
+                result.verdict(),
+                result.flaggedIngredients().size());
+
+            updateCompletedScan(
+                product.getProductName(),
+                scan,
+                result,
+                nutritionFacts,
+                userId,
+                product.getImageUrl());
+
+            long endTime = System.nanoTime();
+            long durationInMilliseconds = (endTime - startTime) / 1_000_000;
+            log.info(
+                "Barcode scan completed in {} ms for scanId: {}",
+                durationInMilliseconds,
+                scanId);
+        } catch (BarCodeNotFoundException e) {
+            log.warn("Barcode not found: {}", e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
+
+            eventPublisher
+                .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.FAILED));
+        } catch (IngredientParsingException e) {
+            log.warn("Failed to parse ingredients: {}", e.getMessage());
+            scan.setStatus(ScanStatus.FAILED);
+
+            eventPublisher
+                .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.FAILED));
+        } catch (Exception e) {
+            log.error("Processing error for scanId {}: {}", scanId, e.getMessage(), e);
+            scan.setStatus(ScanStatus.FAILED);
+
+            eventPublisher
+                .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.FAILED));
+        }
+    }
+
     private void updateCompletedScan(
-        OcrResponseDto ocrResponse,
+        String productName,
         Scan scan,
         FoodSafetyResponse response,
         NutritionFactsDto nutritionFacts,
-        UUID userId) {
+        UUID userId,
+        String imageUrl) {
 
         System.out.println("--------------------------------------------------------");
         System.out.println(response);
         System.out.println(nutritionFacts);
         System.out.println("--------------------------------------------------------");
 
-        scan.setProductName(ocrResponse.getProductName());
+        scan.setProductName(productName);
         scan.setStatus(ScanStatus.COMPLETED);
         scan.setVerdict(response.verdict());
         scan.setSummary(response.summary());
         scan.getScanFlaggedIngredients().clear();
 
+        if (imageUrl != null) {
+            scan.setImageUrl(imageUrl);
+        }
+
         System.out.println(nutritionFacts);
 
-        if (nutritionFacts != null) {
+        if (!nutritionFacts.isEmpty()) {
             NutritionFact nutritionFact = nutritionFactMapper.toEntity(nutritionFacts);
             nutritionFact.setScans(scan);
             scan.setNutritionFact(nutritionFact);

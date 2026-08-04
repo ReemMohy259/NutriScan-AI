@@ -1,7 +1,7 @@
 package gov.iti.jets.NutriScan.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import gov.iti.jets.NutriScan.ai.bedrock.BedrockGatewayStructuredChatClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.iti.jets.NutriScan.ai.bedrock.StructuredChatClient;
 import gov.iti.jets.NutriScan.ai.foodsafety.FoodSafetyJsonSchema;
 import gov.iti.jets.NutriScan.dto.ai.*;
@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class AiService {
@@ -28,10 +27,11 @@ public class AiService {
     private final StructuredChatClient structuredChatClient;
 
     public AiService(
-            ChatClient chatClient,
-            @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
-            TavilySearchTool tavilySearchTool,
-            ObjectMapper objectMapper, StructuredChatClient structuredChatClient) {
+        ChatClient chatClient,
+        @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
+        TavilySearchTool tavilySearchTool,
+        ObjectMapper objectMapper,
+        StructuredChatClient structuredChatClient) {
         this.chatClient = chatClient;
         this.opencodeChatClient = opencodeChatClient;
         this.tavilySearchTool = tavilySearchTool;
@@ -56,17 +56,46 @@ public class AiService {
                 requestData.allergies(),
                 requestData.conditions());
 
-//        return structuredChatClient.generate(
-//                Prompts.FOOD_SAFETY_SYSTEM,
-//                userPrompt,
-//                "food_safety_response",
-//                foodSafetySchema,
-//                1000,
-//                FoodSafetyResponse.class
-//        );
+        // return structuredChatClient.generate(
+        // Prompts.FOOD_SAFETY_SYSTEM,
+        // userPrompt,
+        // "food_safety_response",
+        // foodSafetySchema,
+        // 1000,
+        // FoodSafetyResponse.class
+        // );
 
         return opencodeChatClient.prompt()
             .system(Prompts.FOOD_SAFETY_SYSTEM)
+            .user(userPrompt)
+            .call()
+            .entity(FoodSafetyResponse.class);
+    }
+
+    public FoodSafetyResponse checkBarcodeSafety(BarCodeSafetyPrompt requestData) {
+
+        String userPrompt = """
+            Analyze the product ingredients from OpenFoodFacts and check if they are safe
+            for consumption with the following context:
+            product: %s (barcode: %s)
+            Declared allergens from OpenFoodFacts: %s
+            Possible allergen traces from OpenFoodFacts: %s
+            categories: %s
+            ingredients: %s
+            user allergies: %s
+            user medical conditions: %s
+            """.formatted(
+            requestData.productName(),
+            requestData.barcode(),
+            requestData.allergens(),
+            requestData.categories(),
+            requestData.ingredients(),
+            requestData.traces(),
+            requestData.allergies(),
+            requestData.conditions());
+
+        return opencodeChatClient.prompt()
+            .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
             .user(userPrompt)
             .call()
             .entity(FoodSafetyResponse.class);
