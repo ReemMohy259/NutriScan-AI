@@ -3,7 +3,8 @@ package gov.iti.jets.NutriScan.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.iti.jets.NutriScan.ai.bedrock.StructuredChatClient;
-import gov.iti.jets.NutriScan.ai.foodsafety.FoodSafetyJsonSchema;
+import gov.iti.jets.NutriScan.ai.json_schema.FoodSafetyJsonSchema;
+import gov.iti.jets.NutriScan.ai.json_schema.SearchModelResponseJsonSchema;
 import gov.iti.jets.NutriScan.dto.ai.*;
 import gov.iti.jets.NutriScan.exception.MealModelException;
 import gov.iti.jets.NutriScan.exception.OcrModelException;
@@ -12,6 +13,7 @@ import gov.iti.jets.NutriScan.util.tools.TavilySearchTool;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.content.Media;
+import org.springframework.ai.google.genai.GoogleGenAiChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -20,23 +22,32 @@ import org.springframework.stereotype.Service;
 @Service
 public class AiService {
 
-    private final ChatClient chatClient;
+    private final ChatClient chatClientSearch;
+    private final ChatClient chatClientOcr;
+    private final ChatClient chatClientJudge;
     private final ChatClient opencodeChatClient;
     private final TavilySearchTool tavilySearchTool;
     private final JsonNode foodSafetySchema;
+    private final JsonNode searchResponseSchema;
     private final StructuredChatClient structuredChatClient;
 
     public AiService(
-        ChatClient chatClient,
-        @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
-        TavilySearchTool tavilySearchTool,
-        ObjectMapper objectMapper,
-        StructuredChatClient structuredChatClient) {
-        this.chatClient = chatClient;
+            @Qualifier("geminiSearch")ChatClient chatClientSearch,
+            @Qualifier("geminiOcr")ChatClient chatClientOcr,
+            @Qualifier("geminiJudge")ChatClient chatClientJudge,
+            @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
+            TavilySearchTool tavilySearchTool,
+            ObjectMapper objectMapper,
+            StructuredChatClient structuredChatClient) {
+        this.chatClientSearch = chatClientSearch;
+        this.chatClientOcr = chatClientOcr;
+        this.chatClientJudge = chatClientJudge;
+
         this.opencodeChatClient = opencodeChatClient;
         this.tavilySearchTool = tavilySearchTool;
 
         this.foodSafetySchema = FoodSafetyJsonSchema.create(objectMapper);
+        this.searchResponseSchema = SearchModelResponseJsonSchema.create(objectMapper);
         this.structuredChatClient = structuredChatClient;
     }
 
@@ -56,16 +67,22 @@ public class AiService {
                 requestData.allergies(),
                 requestData.conditions());
 
-        // return structuredChatClient.generate(
-        // Prompts.FOOD_SAFETY_SYSTEM,
-        // userPrompt,
-        // "food_safety_response",
-        // foodSafetySchema,
-        // 1000,
-        // FoodSafetyResponse.class
-        // );
+//         return structuredChatClient.generate(
+//         Prompts.FOOD_SAFETY_SYSTEM,
+//         userPrompt,
+//         "food_safety_response",
+//         foodSafetySchema,
+//         1000,
+//         FoodSafetyResponse.class
+//         );
+//
+//        return opencodeChatClient.prompt()
+//            .system(Prompts.FOOD_SAFETY_SYSTEM)
+//            .user(userPrompt)
+//            .call()
+//            .entity(FoodSafetyResponse.class);
 
-        return opencodeChatClient.prompt()
+        return chatClientJudge.prompt()
             .system(Prompts.FOOD_SAFETY_SYSTEM)
             .user(userPrompt)
             .call()
@@ -94,11 +111,16 @@ public class AiService {
             requestData.allergies(),
             requestData.conditions());
 
-        return opencodeChatClient.prompt()
-            .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
-            .user(userPrompt)
-            .call()
-            .entity(FoodSafetyResponse.class);
+//        return opencodeChatClient.prompt()
+//            .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
+//            .user(userPrompt)
+//            .call()
+//            .entity(FoodSafetyResponse.class);
+        return chatClientJudge.prompt()
+                .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
+                .user(userPrompt)
+                .call()
+                .entity(FoodSafetyResponse.class);
     }
 
     public MealFoodSafetyResponse mealCheckSafety(
@@ -120,7 +142,7 @@ public class AiService {
                 MediaType.parseMediaType(contentType),
                 new ByteArrayResource(bytes));
 
-            return chatClient.prompt()
+            return chatClientJudge.prompt()
                 .system(Prompts.MEAL_FOOD_SAFETY_SYSTEM)
                 .user(user -> user.text(userPrompt).media(media))
                 .call()
@@ -142,7 +164,7 @@ public class AiService {
                 MediaType.parseMediaType(contentType),
                 new ByteArrayResource(bytes));
 
-            return chatClient.prompt()
+            return chatClientOcr.prompt()
                 .system(Prompts.OCR_SYSTEM)
                 .user(
                     user -> user.text(
@@ -167,7 +189,16 @@ public class AiService {
             query,
             webResult);
 
-        SearchModelResponseDto response = chatClient.prompt()
+//        SearchModelResponseDto response =  structuredChatClient.generate(
+//                Prompts.SEARCH_MODEL_SYSTEM,
+//                promptText,
+//                "search_model_response",
+//                searchResponseSchema,
+//                1000,
+//                SearchModelResponseDto.class
+//        );
+
+        SearchModelResponseDto response = chatClientSearch.prompt()
             .system(Prompts.SEARCH_MODEL_SYSTEM)
             .user(promptText)
             .call()

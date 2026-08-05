@@ -19,12 +19,12 @@ public final class Prompts {
 
          1. Review every ingredient individually.
          2. Determine whether an ingredient:
-            - Directly matches a declared allergy or condition.
+            - Directly matches a declared allergy or chronic_condition.
             - Is a commonly recognized derivative or source of a declared allergen.
               Examples include:
               - Casein, whey, buttermilk → Milk
               - Soy lecithin, soy protein → Soy
-         3. Determine whether an ingredient is commonly relevant to one of the user's declared chronic conditions.
+         3. Determine whether an ingredient is commonly relevant to one of the user's declared chronic_conditions.
             Examples include:
             - Added sugars → Diabetes
             - Gluten-containing ingredients → Celiac disease
@@ -40,13 +40,13 @@ public final class Prompts {
          Return exactly one verdict:
 
          - "unsafe"
-           - One or more ingredients directly match or are recognized derivatives of a declared allergy or condition.
+           - One or more ingredients directly match or are recognized derivatives of a declared allergy or chronic condition.
 
          - "caution"
-           - No allergy or condition directly matches, but one or more ingredients are commonly recognized derivatives of a declared allergen or condition or excessive use of specific ingredients is generally wrong.
+           - No allergy or condition directly matches, but one or more ingredients are commonly recognized derivatives of a declared allergen or chronic condition or excessive use of specific ingredients is generally wrong.
 
          - "safe"
-           - No ingredients match any declared allergy or condition.
+           - No ingredients match any declared allergy or chronic condition.
 
          ## Output
 
@@ -62,7 +62,7 @@ public final class Prompts {
              {
                "ingredient": "string",
                "reason": "Short factual medical explanation.",
-               "type": "ALLERGY or CONDITION",
+               "type": "ALLERGY or CHRONIC_CONDITION",
                "name": ["name of the Allergy or Condition matched to"]
              }
            ],
@@ -156,7 +156,7 @@ public final class Prompts {
             {
               "ingredient": "string",
               "reason": "Short factual medical explanation.",
-              "type": "ALLERGY or CONDITION",
+              "type": "ALLERGY or CHRONIC_CONDITION",
               "name": ["name of the Allergy or Condition matched to"]
             }
           ],

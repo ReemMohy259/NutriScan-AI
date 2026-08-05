@@ -1,4 +1,4 @@
-package gov.iti.jets.NutriScan.ai.foodsafety;
+package gov.iti.jets.NutriScan.ai.json_schema;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
