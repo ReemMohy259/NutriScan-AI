@@ -32,13 +32,13 @@ public class AiService {
     private final StructuredChatClient structuredChatClient;
 
     public AiService(
-            @Qualifier("geminiSearch")ChatClient chatClientSearch,
-            @Qualifier("geminiOcr")ChatClient chatClientOcr,
-            @Qualifier("geminiJudge")ChatClient chatClientJudge,
-            @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
-            TavilySearchTool tavilySearchTool,
-            ObjectMapper objectMapper,
-            StructuredChatClient structuredChatClient) {
+        @Qualifier("geminiSearch") ChatClient chatClientSearch,
+        @Qualifier("geminiOcr") ChatClient chatClientOcr,
+        @Qualifier("geminiJudge") ChatClient chatClientJudge,
+        @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
+        TavilySearchTool tavilySearchTool,
+        ObjectMapper objectMapper,
+        StructuredChatClient structuredChatClient) {
         this.chatClientSearch = chatClientSearch;
         this.chatClientOcr = chatClientOcr;
         this.chatClientJudge = chatClientJudge;
@@ -67,20 +67,20 @@ public class AiService {
                 requestData.allergies(),
                 requestData.conditions());
 
-//         return structuredChatClient.generate(
-//         Prompts.FOOD_SAFETY_SYSTEM,
-//         userPrompt,
-//         "food_safety_response",
-//         foodSafetySchema,
-//         1000,
-//         FoodSafetyResponse.class
-//         );
-//
-//        return opencodeChatClient.prompt()
-//            .system(Prompts.FOOD_SAFETY_SYSTEM)
-//            .user(userPrompt)
-//            .call()
-//            .entity(FoodSafetyResponse.class);
+        // return structuredChatClient.generate(
+        // Prompts.FOOD_SAFETY_SYSTEM,
+        // userPrompt,
+        // "food_safety_response",
+        // foodSafetySchema,
+        // 1000,
+        // FoodSafetyResponse.class
+        // );
+        //
+        // return opencodeChatClient.prompt()
+        // .system(Prompts.FOOD_SAFETY_SYSTEM)
+        // .user(userPrompt)
+        // .call()
+        // .entity(FoodSafetyResponse.class);
 
         return chatClientJudge.prompt()
             .system(Prompts.FOOD_SAFETY_SYSTEM)
@@ -111,16 +111,16 @@ public class AiService {
             requestData.allergies(),
             requestData.conditions());
 
-//        return opencodeChatClient.prompt()
-//            .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
-//            .user(userPrompt)
-//            .call()
-//            .entity(FoodSafetyResponse.class);
+        // return opencodeChatClient.prompt()
+        // .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
+        // .user(userPrompt)
+        // .call()
+        // .entity(FoodSafetyResponse.class);
         return chatClientJudge.prompt()
-                .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
-                .user(userPrompt)
-                .call()
-                .entity(FoodSafetyResponse.class);
+            .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
+            .user(userPrompt)
+            .call()
+            .entity(FoodSafetyResponse.class);
     }
 
     public MealFoodSafetyResponse mealCheckSafety(
@@ -189,14 +189,14 @@ public class AiService {
             query,
             webResult);
 
-//        SearchModelResponseDto response =  structuredChatClient.generate(
-//                Prompts.SEARCH_MODEL_SYSTEM,
-//                promptText,
-//                "search_model_response",
-//                searchResponseSchema,
-//                1000,
-//                SearchModelResponseDto.class
-//        );
+        // SearchModelResponseDto response = structuredChatClient.generate(
+        // Prompts.SEARCH_MODEL_SYSTEM,
+        // promptText,
+        // "search_model_response",
+        // searchResponseSchema,
+        // 1000,
+        // SearchModelResponseDto.class
+        // );
 
         SearchModelResponseDto response = chatClientSearch.prompt()
             .system(Prompts.SEARCH_MODEL_SYSTEM)

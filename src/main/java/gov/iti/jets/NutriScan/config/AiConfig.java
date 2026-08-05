@@ -27,71 +27,66 @@ public class AiConfig {
     private String modelName;
 
     private GoogleGenAiChatOptions getChatOptions() {
-        return GoogleGenAiChatOptions.builder()
-                .model(modelName)
-                .build();
+        return GoogleGenAiChatOptions.builder().model(modelName).build();
     }
 
     @Bean
     public ChatClient geminiSearch(
-            ToolCallingManager toolCallingManager,
-            ObjectProvider<RetryTemplate> retryProvider,
-            ObjectProvider<ObservationRegistry> observationProvider) {
+        ToolCallingManager toolCallingManager,
+        ObjectProvider<RetryTemplate> retryProvider,
+        ObjectProvider<ObservationRegistry> observationProvider) {
 
         Client genAiClient = Client.builder().apiKey(apiKeySearch).build();
 
         GoogleGenAiChatModel chatModel = new GoogleGenAiChatModel(
-                genAiClient,
-                getChatOptions(),
-                toolCallingManager,
-                retryProvider.getIfAvailable(RetryTemplate::new),
-                observationProvider.getIfAvailable(() -> ObservationRegistry.NOOP)
-        );
+            genAiClient,
+            getChatOptions(),
+            toolCallingManager,
+            retryProvider.getIfAvailable(RetryTemplate::new),
+            observationProvider.getIfAvailable(() -> ObservationRegistry.NOOP));
 
         return ChatClient.builder(chatModel).build();
     }
 
     @Bean
     public ChatClient geminiOcr(
-            ToolCallingManager toolCallingManager,
-            ObjectProvider<RetryTemplate> retryProvider,
-            ObjectProvider<ObservationRegistry> observationProvider) {
+        ToolCallingManager toolCallingManager,
+        ObjectProvider<RetryTemplate> retryProvider,
+        ObjectProvider<ObservationRegistry> observationProvider) {
 
         Client genAiClient = Client.builder().apiKey(apiKeyOcr).build();
 
         GoogleGenAiChatModel chatModel = new GoogleGenAiChatModel(
-                genAiClient,
-                getChatOptions(),
-                toolCallingManager,
-                retryProvider.getIfAvailable(RetryTemplate::new),
-                observationProvider.getIfAvailable(() -> ObservationRegistry.NOOP)
-        );
+            genAiClient,
+            getChatOptions(),
+            toolCallingManager,
+            retryProvider.getIfAvailable(RetryTemplate::new),
+            observationProvider.getIfAvailable(() -> ObservationRegistry.NOOP));
 
         return ChatClient.builder(chatModel).build();
     }
     @Bean
     public ChatClient geminiJudge(
-            ToolCallingManager toolCallingManager,
-            ObjectProvider<RetryTemplate> retryProvider,
-            ObjectProvider<ObservationRegistry> observationProvider) {
+        ToolCallingManager toolCallingManager,
+        ObjectProvider<RetryTemplate> retryProvider,
+        ObjectProvider<ObservationRegistry> observationProvider) {
 
         Client genAiClient = Client.builder().apiKey(apiKeyJudge).build();
 
         GoogleGenAiChatModel chatModel = new GoogleGenAiChatModel(
-                genAiClient,
-                getChatOptions(),
-                toolCallingManager,
-                retryProvider.getIfAvailable(RetryTemplate::new),
-                observationProvider.getIfAvailable(() -> ObservationRegistry.NOOP)
-        );
+            genAiClient,
+            getChatOptions(),
+            toolCallingManager,
+            retryProvider.getIfAvailable(RetryTemplate::new),
+            observationProvider.getIfAvailable(() -> ObservationRegistry.NOOP));
 
         return ChatClient.builder(chatModel).build();
     }
 
-//    @Bean
-//    ChatClient geminiChatClient(GoogleGenAiChatModel chatModel) {
-//        return ChatClient.builder(chatModel).build();
-//    }
+    // @Bean
+    // ChatClient geminiChatClient(GoogleGenAiChatModel chatModel) {
+    // return ChatClient.builder(chatModel).build();
+    // }
 
     @Bean
     ChatClient openCodeChatClient(OpenAiChatModel chatModel) {
