@@ -24,5 +24,5 @@ public record UpdateProfileRequest(@Size(max = 100) String firstName,
 
     List<@NotNull Integer> diseaseIds,
 
-    List<@Valid @NotNull FamilyMemberRequest> familyMembers) {
+    List<@Valid @NotNull FamilyMemberUpdateRequest> familyMembers) {
 }
