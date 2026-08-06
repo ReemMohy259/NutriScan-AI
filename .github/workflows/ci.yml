@@ -60,16 +60,16 @@ jobs:
         with:
           path: docs
 
-  deploy-pages:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: swagger-pages
-    runs-on: ubuntu-latest
+  # deploy-pages:
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   needs: swagger-pages
+  #   runs-on: ubuntu-latest
 
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deployment.outputs.page_url }}
 
-    steps:
-      - name: Deploy GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+  #   steps:
+  #     - name: Deploy GitHub Pages
+  #       id: deployment
+  #       uses: actions/deploy-pages@v4
