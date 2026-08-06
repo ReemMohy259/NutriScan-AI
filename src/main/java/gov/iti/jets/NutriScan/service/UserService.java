@@ -10,7 +10,9 @@ import gov.iti.jets.NutriScan.mapper.UserMapper;
 import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.AllergyRepository;
 import gov.iti.jets.NutriScan.repository.DiseaseRepository;
+import gov.iti.jets.NutriScan.repository.FamilyMemberRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
+import gov.iti.jets.NutriScan.util.ImageValidationUtils;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -61,6 +64,10 @@ public class UserService {
     private final CloudinaryStorageService cloudinaryStorageService;
 
     private final AccountProperties accountProperties;
+
+    private final FamilyMemberRepository familyMemberRepository;
+
+    private final Clock clock;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -168,26 +175,14 @@ public class UserService {
     @Transactional
     public CurrentUserProfileResponse uploadUserProfileImage(MultipartFile image, Jwt jwt) {
 
-        final long MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
-
-        if (image == null || image.isEmpty())
-            throw new NoImageProvidedException("Image is required");
-
-        String contentType = image.getContentType();
-
-        if (contentType == null || !contentType.startsWith("image/"))
-            throw new InvalidImageException("Only image files are allowed");
-
-        if (image.getSize() > MAX_IMAGE_SIZE_BYTES)
-            throw new ImageTooLargeException("Image size must not exceed 5 MB");
-
+        ImageValidationUtils.validateImage(image);
         UUID userId = UUID.fromString(jwt.getClaim("sub"));
 
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
         try {
-            String url = cloudinaryStorageService.upload(image);
+            String url = cloudinaryStorageService.uploadOrUpdateUserProfile(image, userId);
             user.setImageUrl(url);
         } catch (IOException e) {
             throw new ImageUploadException("Failed to upload image");
@@ -295,6 +290,7 @@ public class UserService {
 
         userRepository.updateDailyStreak(userId, today, today.minusDays(1));
     }
+
     @Transactional
     public DeleteAccountResponse scheduleUserForDeletion(Jwt jwt) {
 
@@ -314,10 +310,11 @@ public class UserService {
         // logout the user and revoke his refresh token
         keycloak.realm(realmName).users().get(userId.toString()).logout();
 
-        Instant accountDeletionTime = Instant.now().plus(gracePeriodDays, ChronoUnit.DAYS);
+        LocalDate accountDeletionTime = LocalDate.now(clock).plusDays(gracePeriodDays);
 
         user.setAccountStatus(AccountStatus.PENDING_DELETION);
         user.setToBeDeletedAt(accountDeletionTime);
+        user.setDeletionRequestedAt(Instant.now(clock));
 
         return new DeleteAccountResponse(accountDeletionTime, gracePeriodDays);
     }
@@ -327,9 +324,9 @@ public class UserService {
         UsersResource usersResource = keycloak.realm(realmName).users();
 
         while (true) {
-            Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtBefore(
+            Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtLessThanEqual(
                 AccountStatus.PENDING_DELETION,
-                Instant.now(),
+                LocalDate.now(clock).plusDays(15),
                 PageRequest.of(0, 50));
 
             log.info("Found {} users to delete", users.getNumberOfElements());
@@ -338,14 +335,27 @@ public class UserService {
                 break;
             }
 
+            int successfulDeletes = 0;
+
             for (User user : users) {
                 try {
                     log.info("Deleting account {} permanently", user.getId());
                     permanentlyDeleteAccount(user, usersResource, userService);
                     log.info("Successfully deleted {}", user.getId());
+                    successfulDeletes++;
                 } catch (Exception ex) {
                     log.error("Failed deleting user {}", user.getId(), ex);
                 }
+            }
+
+            if (successfulDeletes == 0) {
+                log.error(
+                    """
+                        Account deletion stopped because no accounts could be deleted in the current batch.
+                        {} account(s) remain pending deletion.""",
+                    users.getNumberOfElements());
+
+                break;
             }
         }
 
@@ -360,33 +370,45 @@ public class UserService {
         log.info("Deleting resources from Cloudinary...");
         deleteCloudinaryResources(user.getImageUrl());
 
+        userService.deleteUserFromDatabase(user);
+
         log.info("Deleting from Keycloak...");
         deleteKeycloakAccount(usersResource, user.getId().toString());
-
-        userService.deleteUserFromDatabase(user);
     }
 
-    @Transactional
     public void reconcileAccounts(UserService userService) {
 
         UsersResource usersResource = keycloak.realm(realmName).users();
 
-        while (true) {
-            Page<User> users = userRepository
-                .findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(0, 50));
+        List<User> usersToBeDeleted = new ArrayList<>();
+
+        int page = 0;
+
+        Page<User> users;
+
+        do {
+            users = userRepository
+                .findAllByAccountStatus(AccountStatus.ACTIVE, PageRequest.of(page, 50));
 
             if (users.isEmpty()) {
                 break;
             }
 
             for (User user : users) {
-                try {
-                    if (!userExists(user.getId())) {
-                        permanentlyDeleteAccount(user, usersResource, userService);
-                    }
-                } catch (Exception ex) {
-                    log.error("Reconciling user with id [{}] failed.", user.getId(), ex);
+                if (!userExists(user.getId())) {
+                    usersToBeDeleted.add(user);
                 }
+            }
+
+            page++;
+
+        } while (!users.isEmpty());
+
+        for (User user : usersToBeDeleted) {
+            try {
+                permanentlyDeleteAccount(user, usersResource, userService);
+            } catch (Exception ex) {
+                log.error("Failed deleting reconciled user {}", user.getId(), ex);
             }
         }
     }
@@ -402,11 +424,19 @@ public class UserService {
 
         if (user.getAccountStatus() != AccountStatus.PENDING_DELETION) {
             throw new AccountNotPendingDeletionException(
-                "This account is not marked fro deletion.");
+                "This account is not marked for deletion.");
+        }
+
+        LocalDate deletionDate = user.getToBeDeletedAt();
+
+        if (!LocalDate.now(clock).isBefore(deletionDate)) {
+            throw new GracePeriodExpiredException(
+                "The account can no longer be restored because the deletion grace period has expired.");
         }
 
         user.setAccountStatus(AccountStatus.ACTIVE);
         user.setToBeDeletedAt(null);
+        user.setDeletionRequestedAt(null);
 
         return new RestoreAccountResponse("Your account has been restored.", Instant.now());
     }
@@ -624,6 +654,33 @@ public class UserService {
 
     @Transactional
     protected void deleteUserFromDatabase(User user) {
+        // TODO: remove the family member image from cloudinary
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public FamilyMemberResponse uploadUserFamilyMemberImage(
+        UUID familyMemberId,
+        MultipartFile image,
+        Jwt jwt) {
+
+        ImageValidationUtils.validateImage(image);
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+
+        FamilyMember familyMember = familyMemberRepository
+            .findByIdWAndUserIdWithDetails(familyMemberId, userId)
+            .orElseThrow(
+                () -> new FamilyMemberNotFoundException(
+                    "Family member not found with id: " + familyMemberId));
+
+        try {
+            String url = cloudinaryStorageService.uploadOrUpdateFamilyMember(image, familyMemberId);
+            familyMember.setImageUrl(url);
+
+            return familyMemberMapper.toResponse(familyMember);
+
+        } catch (IOException e) {
+            throw new ImageUploadException("Failed to upload image");
+        }
     }
 }

@@ -1,11 +1,9 @@
 package gov.iti.jets.NutriScan.controller;
 
 import gov.iti.jets.NutriScan.dto.*;
-import gov.iti.jets.NutriScan.exception.ImageTooLargeException;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
-import gov.iti.jets.NutriScan.exception.NoImageProvidedException;
-import gov.iti.jets.NutriScan.service.OpenFoodFactsService;
 import gov.iti.jets.NutriScan.service.ScanService;
+import gov.iti.jets.NutriScan.util.ImageValidationUtils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -31,7 +29,6 @@ import java.util.UUID;
 public class ScanController {
 
     private final ScanService scanService;
-    private static final long MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -39,16 +36,7 @@ public class ScanController {
         @AuthenticationPrincipal Jwt jwt,
         @RequestParam("image") MultipartFile image) {
 
-        if (image == null || image.isEmpty())
-            throw new NoImageProvidedException("Image is required");
-
-        String contentType = image.getContentType();
-
-        if (contentType == null || !contentType.startsWith("image/"))
-            throw new InvalidImageException("Only image files are allowed");
-
-        if (image.getSize() > MAX_IMAGE_SIZE_BYTES)
-            throw new ImageTooLargeException("Image size must not exceed 5 MB");
+        ImageValidationUtils.validateImage(image);
 
         ScanSubmitResponse result = scanService.addNewScan(jwt, image);
 

@@ -29,9 +29,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Page<User> findAllByAccountStatus(AccountStatus accountStatus, Pageable pageable);
 
-    Page<User> findAllByAccountStatusAndToBeDeletedAtBefore(
+    Page<User> findAllByAccountStatusAndToBeDeletedAtLessThanEqual(
         AccountStatus accountStatus,
-        Instant now,
+        LocalDate now,
         Pageable pageable);
 
     @Modifying
