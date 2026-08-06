@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.DataInput;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -36,6 +37,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -125,17 +127,112 @@ public class UserService {
         updateFamilyMembers(user, userDetails.familyMembers());
     }
 
-    private void updateFamilyMembers(User user, List<FamilyMemberRequest> requests) {
+    private void updateFamilyMembers(User user, List<FamilyMemberUpdateRequest> requests) {
 
         if (requests == null) {
             return;
         }
 
-        user.getFamilyMembers().clear();
+        Map<UUID, FamilyMember> existingMembers = user.getFamilyMembers()
+            .stream()
+            .collect(Collectors.toMap(FamilyMember::getId, Function.identity()));
 
-        if (!requests.isEmpty()) {
-            buildFamilyMembers(user, requests).forEach(user::addFamilyMember);
+        Set<Integer> allAllergyIds = requests.stream()
+            .flatMap(r -> r.allergyIds() == null ? Stream.empty() : r.allergyIds().stream())
+            .collect(Collectors.toSet());
+
+        Set<Allergy> allergies = allergyRepository.findAllByIdIn(allAllergyIds);
+
+        Map<Integer, Allergy> allergiesById = allergies.stream()
+            .collect(Collectors.toMap(Allergy::getId, Function.identity()));
+
+        Set<Integer> missingAllergyIds = new HashSet<>(allAllergyIds);
+        missingAllergyIds.removeAll(allergiesById.keySet());
+
+        if (!missingAllergyIds.isEmpty()) {
+            throw new AllergyNotFoundException("Allergy not found with ids: " + missingAllergyIds);
         }
+
+        Set<Integer> allDiseasesIds = requests.stream()
+            .flatMap(r -> r.diseaseIds() == null ? Stream.empty() : r.diseaseIds().stream())
+            .collect(Collectors.toSet());
+
+        Set<Disease> diseases = diseaseRepository.findAllByIdIn(allDiseasesIds);
+
+        Map<Integer, Disease> diseasesById = diseases.stream()
+            .collect(Collectors.toMap(Disease::getId, Function.identity()));
+
+        Set<Integer> missingDiseasesIds = new HashSet<>(allDiseasesIds);
+        missingDiseasesIds.removeAll(diseasesById.keySet());
+
+        if (!missingDiseasesIds.isEmpty()) {
+            throw new DiseaseNotFoundException("Disease not found with ids: " + missingDiseasesIds);
+        }
+
+        List<FamilyMemberRequest> familyMembersToCreate = new ArrayList<>();
+
+        for (FamilyMemberUpdateRequest request : requests) {
+
+            if (request.id() == null) {
+
+                // add to list to create later
+                FamilyMemberRequest newFamilyMember = new FamilyMemberRequest(
+                    request.name(),
+                    request.relation(),
+                    request.allergyIds(),
+                    request.diseaseIds());
+
+                familyMembersToCreate.add(newFamilyMember);
+
+                continue;
+            }
+
+            FamilyMember familyMember = existingMembers.remove(request.id());
+
+            if (familyMember == null) {
+                throw new FamilyMemberNotFoundException(
+                    "Family member not found with id: " + request.id());
+            }
+
+            familyMember.setName(request.name());
+            familyMember.setRelation(request.relation());
+
+            if (request.allergyIds() != null) {
+                familyMember.getAllergies().clear();
+                userRepository.flush();
+
+                for (Integer allergyId : request.allergyIds()) {
+                    familyMember.getAllergies()
+                        .add(
+                            FamilyMemberAllergy.builder()
+                                .id(new FamilyMemberAllergyId(familyMember.getId(), allergyId))
+                                .familyMember(familyMember)
+                                .allergy(allergiesById.get(allergyId))
+                                .build());
+                }
+            }
+
+            if (request.diseaseIds() != null) {
+                familyMember.getDiseases().clear();
+                userRepository.flush();
+
+                for (Integer diseaseId : request.diseaseIds()) {
+                    familyMember.getDiseases()
+                        .add(
+                            FamilyMemberDisease.builder()
+                                .id(new FamilyMemberDiseaseId(familyMember.getId(), diseaseId))
+                                .familyMember(familyMember)
+                                .disease(diseasesById.get(diseaseId))
+                                .build());
+                }
+            }
+        }
+
+        buildFamilyMembers(user, familyMembersToCreate, allergiesById, diseasesById)
+            .forEach(user::addFamilyMember);
+
+        // Delete members that were removed by the user
+        existingMembers.values().forEach(user::removeFamilyMember);
 
         userRepository.flush();
     }
@@ -326,7 +423,7 @@ public class UserService {
         while (true) {
             Page<User> users = userRepository.findAllByAccountStatusAndToBeDeletedAtLessThanEqual(
                 AccountStatus.PENDING_DELETION,
-                LocalDate.now(clock).plusDays(15),
+                LocalDate.now(clock),
                 PageRequest.of(0, 50));
 
             log.info("Found {} users to delete", users.getNumberOfElements());
@@ -456,7 +553,7 @@ public class UserService {
             throw new AllergyNotFoundException("Allergy not found with ids: " + notFoundIds);
         }
 
-        // TODO: fix multiple select and insert statments (maybe batch them)
+        // TODO: fix multiple select and insert statements (maybe batch them)
         return allergies.stream().map(allergy -> {
 
             UserAllergy userAllergy = new UserAllergy();
@@ -482,7 +579,7 @@ public class UserService {
             throw new DiseaseNotFoundException("Disease not found with ids: " + notFoundIds);
         }
 
-        // TODO: fix multiple select and insert statments (maybe batch them)
+        // TODO: fix multiple select and insert statements (maybe batch them)
         return diseases.stream().map(disease -> {
 
             UserDisease userDisease = new UserDisease();
@@ -499,7 +596,8 @@ public class UserService {
         List<FamilyMemberRequest> familyMemberRequests) {
 
         if (familyMemberRequests == null || familyMemberRequests.isEmpty()) {
-            return new HashSet<>();
+            // more optimized, avoids allocating memory for a set that will be empty anyway
+            return Collections.emptySet();
         }
 
         Set<Integer> allergyIds = familyMemberRequests.stream()
@@ -538,6 +636,20 @@ public class UserService {
                 "Disease not found with ids: " + missingDiseaseIds.stream()
                     .map(String::valueOf)
                     .collect(Collectors.joining(", ")));
+        }
+
+        return buildFamilyMembers(user, familyMemberRequests, allergiesById, diseasesById);
+    }
+
+    private Set<FamilyMember> buildFamilyMembers(
+        User user,
+        List<FamilyMemberRequest> familyMemberRequests,
+        Map<Integer, Allergy> allergiesById,
+        Map<Integer, Disease> diseasesById) {
+
+        if (familyMemberRequests == null || familyMemberRequests.isEmpty()) {
+            // more optimized, avoids allocating memory for a set that will be empty anyway
+            return Collections.emptySet();
         }
 
         Set<FamilyMember> familyMembers = new HashSet<>();
@@ -654,7 +766,10 @@ public class UserService {
 
     @Transactional
     protected void deleteUserFromDatabase(User user) {
-        // TODO: remove the family member image from cloudinary
+
+        user.getFamilyMembers()
+            .forEach(familyMember -> deleteCloudinaryResources(familyMember.getImageUrl()));
+
         userRepository.delete(user);
     }
 
