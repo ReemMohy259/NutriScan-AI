@@ -13,8 +13,8 @@ import gov.iti.jets.NutriScan.util.tools.TavilySearchTool;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.content.Media;
-import org.springframework.ai.google.genai.GoogleGenAiChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -89,6 +89,8 @@ public class AiService {
             .entity(FoodSafetyResponse.class);
     }
 
+    @Cacheable(cacheNames = "ai-barcode", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
+        + "#requestData.barcode(), #requestData.allergies(), #requestData.conditions())")
     public FoodSafetyResponse checkBarcodeSafety(BarCodeSafetyPrompt requestData) {
 
         String userPrompt = """
@@ -105,9 +107,9 @@ public class AiService {
             requestData.productName(),
             requestData.barcode(),
             requestData.allergens(),
+            requestData.traces(),
             requestData.categories(),
             requestData.ingredients(),
-            requestData.traces(),
             requestData.allergies(),
             requestData.conditions());
 

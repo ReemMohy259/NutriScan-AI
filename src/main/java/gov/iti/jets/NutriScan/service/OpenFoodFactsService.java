@@ -7,6 +7,7 @@ import gov.iti.jets.NutriScan.dto.ai.barcode.BarCodeResponseDto;
 import gov.iti.jets.NutriScan.exception.BarCodeNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -25,6 +26,7 @@ public class OpenFoodFactsService {
 
     private static final String URL = "https://world.openfoodfacts.org/api/v2/product/%s.json";
 
+    @Cacheable(value = "open-food-facts", key = "#barcode", unless = "#result == null")
     public BarCodeProductDto getProduct(String barcode) {
 
         try {
