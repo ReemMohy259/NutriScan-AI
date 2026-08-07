@@ -13,6 +13,7 @@ import gov.iti.jets.NutriScan.repository.DiseaseRepository;
 import gov.iti.jets.NutriScan.repository.FamilyMemberRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
 import gov.iti.jets.NutriScan.util.ImageValidationUtils;
+import jakarta.persistence.EntityManager;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.DataInput;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -70,6 +70,8 @@ public class UserService {
     private final FamilyMemberRepository familyMemberRepository;
 
     private final Clock clock;
+
+    private final EntityManager entityManager;
 
     public User findById(UUID id) {
         return userRepository.findById(id)
@@ -275,8 +277,8 @@ public class UserService {
         ImageValidationUtils.validateImage(image);
         UUID userId = UUID.fromString(jwt.getClaim("sub"));
 
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        User user = userRepository.findByIdWithAllergiesAndDiseasesAndFamilyMembers(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
         try {
             String url = cloudinaryStorageService.uploadOrUpdateUserProfile(image, userId);
@@ -287,34 +289,49 @@ public class UserService {
 
         userRepository.save(user);
 
-        return getFullUser(jwt);
+        return getFullUser(user);
     }
 
     public CurrentUserSummaryResponse getCurrentUserSummary(Jwt jwt) {
-
-        CurrentUserProfileResponse user = getFullUser(jwt);
-
-        return userMapper.toResponse(user);
-    }
-
-    public CurrentUserProfileResponse getCurrentUserProfile(Jwt jwt) {
-
-        return getFullUser(jwt);
-    }
-
-    private CurrentUserProfileResponse getFullUser(Jwt jwt) {
 
         UUID userId = UUID.fromString(jwt.getClaim("sub"));
 
         UsersResource usersResource = keycloak.realm(realmName).users();
         UserRepresentation userRepresentation = usersResource.get(String.valueOf(userId))
-            .toRepresentation();
+                .toRepresentation();
 
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        return CurrentUserSummaryResponse.builder()
+                .id(userId)
+                .email(userRepresentation.getEmail())
+                .username(userRepresentation.getUsername())
+                .firstName(userRepresentation.getFirstName())
+                .lastName(userRepresentation.getLastName())
+                .imageUrl(user.getImageUrl())
+                .dailyStreak(user.getDailyStreak())
+                .build();
+    }
+
+    public CurrentUserProfileResponse getCurrentUserProfile(Jwt jwt) {
+
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+
+        User user = userRepository.findByIdWithAllergiesAndDiseasesAndFamilyMembers(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        return getFullUser(user);
+    }
+
+    private CurrentUserProfileResponse getFullUser(User user) {
+
+
+        UsersResource usersResource = keycloak.realm(realmName).users();
+        UserRepresentation userRepresentation = usersResource.get(String.valueOf(user.getId()))
+            .toRepresentation();
 
         return CurrentUserProfileResponse.builder()
-            .id(userId)
+            .id(user.getId())
             .email(userRepresentation.getEmail())
             .username(userRepresentation.getUsername())
             .firstName(userRepresentation.getFirstName())
@@ -359,7 +376,7 @@ public class UserService {
         user.setUserDiseases(buildUserDiseases(userId, user, request.diseases()));
         user.setFamilyMembers(buildFamilyMembers(user, request.familyMembers()));
 
-        userRepository.save(user);
+        entityManager.persist(user);
 
         return new RegisterResponse("Registration successful", true);
     }
@@ -540,14 +557,23 @@ public class UserService {
 
     // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
-        Set<Allergy> allergies = allergyRepository.findAllByIdIn(allergyIds);
+        Set<Allergy> allergies = Set.of();
+        if (allergyIds != null && !allergyIds.isEmpty()) {
+            allergies = allergyRepository.findAllByIdIn(allergyIds);
+        }
 
         Set<Integer> foundIds = allergies.stream().map(Allergy::getId).collect(Collectors.toSet());
 
-        String notFoundIds = allergyIds.stream()
-            .filter(id -> !foundIds.contains(id))
-            .map(String::valueOf)
-            .collect(Collectors.joining(", "));
+        String notFoundIds = "";
+
+        if (allergyIds != null && !allergyIds.isEmpty())
+        {
+            notFoundIds = allergyIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", "));
+        }
+
 
         if (!notFoundIds.isEmpty()) {
             throw new AllergyNotFoundException("Allergy not found with ids: " + notFoundIds);
@@ -566,14 +592,23 @@ public class UserService {
     }
 
     private Set<UserDisease> buildUserDiseases(UUID userId, User user, List<Integer> diseaseIds) {
-        Set<Disease> diseases = diseaseRepository.findAllByIdIn(diseaseIds);
+        Set<Disease> diseases = Set.of();
+
+        if (diseaseIds != null && !diseaseIds.isEmpty()) {
+            diseases = diseaseRepository.findAllByIdIn(diseaseIds);
+        }
 
         Set<Integer> foundIds = diseases.stream().map(Disease::getId).collect(Collectors.toSet());
 
-        String notFoundIds = diseaseIds.stream()
-            .filter(id -> !foundIds.contains(id))
-            .map(String::valueOf)
-            .collect(Collectors.joining(", "));
+        String notFoundIds = "";
+
+        if (diseaseIds != null && !diseaseIds.isEmpty())
+        {
+            notFoundIds = diseaseIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", "));
+        }
 
         if (!notFoundIds.isEmpty()) {
             throw new DiseaseNotFoundException("Disease not found with ids: " + notFoundIds);

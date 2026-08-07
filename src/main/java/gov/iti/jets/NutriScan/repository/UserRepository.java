@@ -27,6 +27,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         """)
     Optional<User> findByIdWithAllergiesAndDiseases(UUID id);
 
+    @Query("""
+        select distinct u
+        from User u
+        left join fetch u.userAllergies ua
+        left join fetch ua.allergy
+        left join fetch u.userDiseases ud
+        left join fetch ud.disease
+        left join fetch u.familyMembers
+        where u.id = :id
+        """)
+    Optional<User> findByIdWithAllergiesAndDiseasesAndFamilyMembers(UUID id);
+
     Page<User> findAllByAccountStatus(AccountStatus accountStatus, Pageable pageable);
 
     Page<User> findAllByAccountStatusAndToBeDeletedAtLessThanEqual(
