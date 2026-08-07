@@ -201,7 +201,7 @@ public class GlobalExceptionHandler {
         ApiErrorResponse response = ApiErrorResponse.builder()
             .timestamp(Instant.now())
             .status(HttpStatus.CONTENT_TOO_LARGE.value())
-            .error("IMAGE_TOO_LARGE")
+            .error("CONTENT_TOO_LARGE")
             .message(ex.getMessage())
             .path(request.getRequestURL().toString())
             .build();
@@ -255,6 +255,24 @@ public class GlobalExceptionHandler {
             .build();
 
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+    }
+
+    @ExceptionHandler(KeyCloakCreationException.class)
+    public ResponseEntity<ApiErrorResponse> handleKeycloakCreationException(
+            KeyCloakCreationException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("KEYCLOAK_CREATION_FAILED")
+                .message(ex.getMessage())
+                .path(request.getRequestURL().toString())
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
     }
 
     @ExceptionHandler(Exception.class)
