@@ -33,4 +33,7 @@ public class OcrResponseDto {
 
     @JsonProperty("nutrition_facts")
     private NutritionFactsDto nutritionFacts;
+
+    @JsonProperty("is_blurry")
+    private boolean isBlurry;
 }
