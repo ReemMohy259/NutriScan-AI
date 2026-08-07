@@ -104,7 +104,9 @@ public class UserService {
     }
 
     public void update(UUID id, UpdateProfileRequest userDetails) {
-        User user = findById(id);
+        User user = userRepository.findByIdAndFamilyMembers(id).orElseThrow(
+                () -> new UserNotFoundException("User not found with id: " + id)
+        );
 
         if (userDetails.dateOfBirth() != null) {
             user.setDateOfBirth(userDetails.dateOfBirth());

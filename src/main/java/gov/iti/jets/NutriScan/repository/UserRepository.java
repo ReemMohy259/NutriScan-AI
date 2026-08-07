@@ -64,4 +64,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("today") LocalDate today,
         @Param("yesterday") LocalDate yesterday);
 
+    @Query("""
+        select distinct u
+        from User u
+        left join fetch u.familyMembers
+        where u.id = :id
+        """)
+    Optional<User> findByIdAndFamilyMembers(UUID id);
 }
