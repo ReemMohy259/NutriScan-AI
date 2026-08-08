@@ -89,7 +89,7 @@ public class AiService {
             .entity(FoodSafetyResponse.class);
     }
 
-    @Cacheable(cacheNames = "ai-barcode", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
+    @Cacheable(cacheNames = "aiBarcode", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
         + "#requestData.barcode(), #requestData.allergies(), #requestData.conditions())")
     public FoodSafetyResponse checkBarcodeSafety(BarCodeSafetyPrompt requestData) {
 
