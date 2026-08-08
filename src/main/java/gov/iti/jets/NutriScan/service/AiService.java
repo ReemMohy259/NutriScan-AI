@@ -1,5 +1,10 @@
 package gov.iti.jets.NutriScan.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.iti.jets.NutriScan.ai.bedrock.StructuredChatClient;
+import gov.iti.jets.NutriScan.ai.json_schema.FoodSafetyJsonSchema;
+import gov.iti.jets.NutriScan.ai.json_schema.SearchModelResponseJsonSchema;
 import gov.iti.jets.NutriScan.dto.ai.*;
 import gov.iti.jets.NutriScan.exception.MealModelException;
 import gov.iti.jets.NutriScan.exception.OcrModelException;
@@ -9,30 +14,45 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 public class AiService {
 
-    private final ChatClient chatClient;
+    private final ChatClient chatClientSearch;
+    private final ChatClient chatClientOcr;
+    private final ChatClient chatClientJudge;
     private final ChatClient opencodeChatClient;
     private final TavilySearchTool tavilySearchTool;
+    private final JsonNode foodSafetySchema;
+    private final JsonNode searchResponseSchema;
+    private final StructuredChatClient structuredChatClient;
 
     public AiService(
-        ChatClient chatClient,
+        @Qualifier("geminiSearch") ChatClient chatClientSearch,
+        @Qualifier("geminiOcr") ChatClient chatClientOcr,
+        @Qualifier("geminiJudge") ChatClient chatClientJudge,
         @Qualifier("openCodeChatClient") ChatClient opencodeChatClient,
-        TavilySearchTool tavilySearchTool) {
-        this.chatClient = chatClient;
+        TavilySearchTool tavilySearchTool,
+        ObjectMapper objectMapper,
+        StructuredChatClient structuredChatClient) {
+        this.chatClientSearch = chatClientSearch;
+        this.chatClientOcr = chatClientOcr;
+        this.chatClientJudge = chatClientJudge;
+
         this.opencodeChatClient = opencodeChatClient;
         this.tavilySearchTool = tavilySearchTool;
+
+        this.foodSafetySchema = FoodSafetyJsonSchema.create(objectMapper);
+        this.searchResponseSchema = SearchModelResponseJsonSchema.create(objectMapper);
+        this.structuredChatClient = structuredChatClient;
     }
 
     public FoodSafetyResponse checkSafety(IngredientsSafetyPrompt requestData) {
-        // TODO: add nutrition facts to the prompt
+
         String userPrompt = """
             Analyze the ingredients and check if they are safe for consumption with the following context:
             ingredients: %s
@@ -47,8 +67,59 @@ public class AiService {
                 requestData.allergies(),
                 requestData.conditions());
 
-        return opencodeChatClient.prompt()
+        // return structuredChatClient.generate(
+        // Prompts.FOOD_SAFETY_SYSTEM,
+        // userPrompt,
+        // "food_safety_response",
+        // foodSafetySchema,
+        // 1000,
+        // FoodSafetyResponse.class
+        // );
+        //
+        // return opencodeChatClient.prompt()
+        // .system(Prompts.FOOD_SAFETY_SYSTEM)
+        // .user(userPrompt)
+        // .call()
+        // .entity(FoodSafetyResponse.class);
+
+        return chatClientJudge.prompt()
             .system(Prompts.FOOD_SAFETY_SYSTEM)
+            .user(userPrompt)
+            .call()
+            .entity(FoodSafetyResponse.class);
+    }
+
+    @Cacheable(cacheNames = "ai-barcode", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
+        + "#requestData.barcode(), #requestData.allergies(), #requestData.conditions())")
+    public FoodSafetyResponse checkBarcodeSafety(BarCodeSafetyPrompt requestData) {
+
+        String userPrompt = """
+            Analyze the product ingredients from OpenFoodFacts and check if they are safe
+            for consumption with the following context:
+            product: %s (barcode: %s)
+            Declared allergens from OpenFoodFacts: %s
+            Possible allergen traces from OpenFoodFacts: %s
+            categories: %s
+            ingredients: %s
+            user allergies: %s
+            user medical conditions: %s
+            """.formatted(
+            requestData.productName(),
+            requestData.barcode(),
+            requestData.allergens(),
+            requestData.traces(),
+            requestData.categories(),
+            requestData.ingredients(),
+            requestData.allergies(),
+            requestData.conditions());
+
+        // return opencodeChatClient.prompt()
+        // .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
+        // .user(userPrompt)
+        // .call()
+        // .entity(FoodSafetyResponse.class);
+        return chatClientJudge.prompt()
+            .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
             .user(userPrompt)
             .call()
             .entity(FoodSafetyResponse.class);
@@ -58,7 +129,6 @@ public class AiService {
         byte[] bytes,
         String contentType,
         MealIngredientsSafetyPrompt userData) {
-        // TODO: add nutrition facts to the prompt
         String userPrompt = """
             Analyze the meal and extract the ingredients and check if they are safe for consumption.
 
@@ -74,7 +144,7 @@ public class AiService {
                 MediaType.parseMediaType(contentType),
                 new ByteArrayResource(bytes));
 
-            return chatClient.prompt()
+            return chatClientJudge.prompt()
                 .system(Prompts.MEAL_FOOD_SAFETY_SYSTEM)
                 .user(user -> user.text(userPrompt).media(media))
                 .call()
@@ -96,7 +166,7 @@ public class AiService {
                 MediaType.parseMediaType(contentType),
                 new ByteArrayResource(bytes));
 
-            return chatClient.prompt()
+            return chatClientOcr.prompt()
                 .system(Prompts.OCR_SYSTEM)
                 .user(
                     user -> user.text(
@@ -111,26 +181,32 @@ public class AiService {
         }
     }
 
-    public List<String> searchForIngredientsModel(String query, String productName) {
+    public SearchModelResponseDto searchForIngredientsModel(String query, String productName) {
+
+        String webResult = tavilySearchTool.search(query);
 
         String promptText = String.format(
-            "get the ingredients of product: %s and the recommended search query is %s",
+            "get the ingredients of product: %s and the recommended search query is %s\n\n\n web result is: %s",
             productName,
-            query);
+            query,
+            webResult);
 
-        // var options =
-        // OpenAiChatOptions.builder().parallelToolCalls(false).maxTokens(5000);
+        // SearchModelResponseDto response = structuredChatClient.generate(
+        // Prompts.SEARCH_MODEL_SYSTEM,
+        // promptText,
+        // "search_model_response",
+        // searchResponseSchema,
+        // 1000,
+        // SearchModelResponseDto.class
+        // );
 
-        String response = chatClient.prompt()
+        SearchModelResponseDto response = chatClientSearch.prompt()
             .system(Prompts.SEARCH_MODEL_SYSTEM)
-            // .options(options)
             .user(promptText)
-            .tools(tavilySearchTool)
             .call()
-            .content();
-        // .entity(new ParameterizedTypeReference<List<String>>() {});
+            .entity(SearchModelResponseDto.class);
 
-        System.out.println("search Response: " + response);
-        return List.of(response);
+        System.out.println("search Model Response: " + response);
+        return response;
     }
 }

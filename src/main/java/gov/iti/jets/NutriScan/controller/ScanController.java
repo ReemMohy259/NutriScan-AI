@@ -1,9 +1,6 @@
 package gov.iti.jets.NutriScan.controller;
 
-import gov.iti.jets.NutriScan.dto.ScanResultResponse;
-import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
-import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
-import gov.iti.jets.NutriScan.dto.UpdateScanDto;
+import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
 import gov.iti.jets.NutriScan.service.ScanService;
 import gov.iti.jets.NutriScan.util.ImageValidationUtils;
@@ -76,6 +73,19 @@ public class ScanController {
         return ResponseEntity.ok().body(scan);
     }
 
+    @PostMapping(value = "/barcode")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ResponseEntity<ScanSubmitResponse> scanBarcode(
+        @AuthenticationPrincipal Jwt jwt,
+        @Valid @RequestBody BarCodeRequest request) {
+
+        ScanSubmitResponse result = scanService.addNewBarcodeScan(jwt);
+
+        scanService.processBarcodeScan(jwt, result.scanId(), request.barcode());
+
+        return ResponseEntity.accepted().body(result);
+    }
+
     @GetMapping
     public Page<ScanSummaryResponse> getScans(
         @AuthenticationPrincipal Jwt jwt,
@@ -86,6 +96,7 @@ public class ScanController {
 
         return scanService.findByUserId(jwt, validated);
     }
+
     @GetMapping("/favorites")
     public Page<ScanSummaryResponse> getFavoriteScans(
         @AuthenticationPrincipal Jwt jwt,
