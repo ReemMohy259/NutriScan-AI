@@ -5,6 +5,7 @@ import gov.iti.jets.NutriScan.model.Scan;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,8 +14,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ScanRepository extends JpaRepository<Scan, UUID> {
-
-    List<Scan> findByStatus(String status);
 
     @Query("""
             select distinct s
@@ -63,4 +62,8 @@ public interface ScanRepository extends JpaRepository<Scan, UUID> {
 
     @Query("select s from Scan s where s.id = :id and s.user.id = :userId")
     Optional<Scan> findByIdAndUserId(UUID id, UUID userId);
+
+    @Query("delete from Scan s where s.id = :id and s.user.id = :userId")
+    @Modifying
+    void deleteByIdAndUserId(UUID id, UUID userId);
 }

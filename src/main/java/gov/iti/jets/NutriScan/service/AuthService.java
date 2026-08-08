@@ -1,6 +1,7 @@
 package gov.iti.jets.NutriScan.service;
 
 import gov.iti.jets.NutriScan.dto.*;
+import gov.iti.jets.NutriScan.exception.KeyCloakCreationException;
 import gov.iti.jets.NutriScan.exception.UserAlreadyVerifiedException;
 import gov.iti.jets.NutriScan.exception.UserConflictException;
 import gov.iti.jets.NutriScan.exception.UserNotFoundException;
@@ -53,6 +54,12 @@ public class AuthService {
 
         if (response.getStatus() == HttpStatus.SC_CONFLICT) {
             throw new UserConflictException("Username or email already exists.");
+        }
+        if (response.getStatus() != HttpStatus.SC_CREATED) {
+            String error = response.readEntity(String.class);
+            System.out.println("Keycloak error: " + error);
+
+            throw new KeyCloakCreationException("Keycloak user creation failed: " + error);
         }
 
         String userId = CreatedResponseUtil.getCreatedId(response);

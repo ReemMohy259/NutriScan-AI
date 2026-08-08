@@ -26,7 +26,7 @@ public class OpenFoodFactsService {
 
     private static final String URL = "https://world.openfoodfacts.org/api/v2/product/%s.json";
 
-    @Cacheable(value = "open-food-facts", key = "#barcode", unless = "#result == null")
+    @Cacheable(value = "openFoodFacts", key = "#barcode", unless = "#result == null")
     public BarCodeProductDto getProduct(String barcode) {
 
         try {
