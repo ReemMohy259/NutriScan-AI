@@ -6,7 +6,6 @@ import gov.iti.jets.NutriScan.exception.*;
 import gov.iti.jets.NutriScan.mapper.AllergyMapper;
 import gov.iti.jets.NutriScan.mapper.DiseaseMapper;
 import gov.iti.jets.NutriScan.mapper.FamilyMemberMapper;
-import gov.iti.jets.NutriScan.mapper.UserMapper;
 import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.AllergyRepository;
 import gov.iti.jets.NutriScan.repository.DiseaseRepository;
@@ -55,7 +54,6 @@ public class UserService {
 
     private final DiseaseRepository diseaseRepository;
 
-    private final UserMapper userMapper;
 
     private final AllergyMapper allergyMapper;
 
@@ -72,11 +70,6 @@ public class UserService {
     private final Clock clock;
 
     private final EntityManager entityManager;
-
-    public User findById(UUID id) {
-        return userRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
-    }
 
     @Transactional
     public void updateUserProfile(UpdateProfileRequest request, Jwt jwt) {
@@ -101,176 +94,6 @@ public class UserService {
         }
 
         update(UUID.fromString(userId), request);
-    }
-
-    public void update(UUID id, UpdateProfileRequest userDetails) {
-        User user = userRepository.findByIdAndFamilyMembers(id).orElseThrow(
-                () -> new UserNotFoundException("User not found with id: " + id)
-        );
-
-        if (userDetails.dateOfBirth() != null) {
-            user.setDateOfBirth(userDetails.dateOfBirth());
-        }
-
-        if (userDetails.gender() != null) {
-            user.setGender(userDetails.gender());
-        }
-
-        if (userDetails.heightCm() != null) {
-            user.setHeightCm(userDetails.heightCm());
-        }
-
-        if (userDetails.weightKg() != null) {
-            user.setWeightKg(userDetails.weightKg());
-        }
-
-        updateUserAllergies(user, userDetails.allergyIds());
-
-        updateUserDiseases(user, userDetails.diseaseIds());
-
-        updateFamilyMembers(user, userDetails.familyMembers());
-    }
-
-    private void updateFamilyMembers(User user, List<FamilyMemberUpdateRequest> requests) {
-
-        if (requests == null) {
-            return;
-        }
-
-        Map<UUID, FamilyMember> existingMembers = user.getFamilyMembers()
-            .stream()
-            .collect(Collectors.toMap(FamilyMember::getId, Function.identity()));
-
-        Set<Integer> allAllergyIds = requests.stream()
-            .flatMap(r -> r.allergyIds() == null ? Stream.empty() : r.allergyIds().stream())
-            .collect(Collectors.toSet());
-
-        Set<Allergy> allergies = allergyRepository.findAllByIdIn(allAllergyIds);
-
-        Map<Integer, Allergy> allergiesById = allergies.stream()
-            .collect(Collectors.toMap(Allergy::getId, Function.identity()));
-
-        Set<Integer> missingAllergyIds = new HashSet<>(allAllergyIds);
-        missingAllergyIds.removeAll(allergiesById.keySet());
-
-        if (!missingAllergyIds.isEmpty()) {
-            throw new AllergyNotFoundException("Allergy not found with ids: " + missingAllergyIds);
-        }
-
-        Set<Integer> allDiseasesIds = requests.stream()
-            .flatMap(r -> r.diseaseIds() == null ? Stream.empty() : r.diseaseIds().stream())
-            .collect(Collectors.toSet());
-
-        Set<Disease> diseases = diseaseRepository.findAllByIdIn(allDiseasesIds);
-
-        Map<Integer, Disease> diseasesById = diseases.stream()
-            .collect(Collectors.toMap(Disease::getId, Function.identity()));
-
-        Set<Integer> missingDiseasesIds = new HashSet<>(allDiseasesIds);
-        missingDiseasesIds.removeAll(diseasesById.keySet());
-
-        if (!missingDiseasesIds.isEmpty()) {
-            throw new DiseaseNotFoundException("Disease not found with ids: " + missingDiseasesIds);
-        }
-
-        List<FamilyMemberRequest> familyMembersToCreate = new ArrayList<>();
-
-        for (FamilyMemberUpdateRequest request : requests) {
-
-            if (request.id() == null) {
-
-                // add to list to create later
-                FamilyMemberRequest newFamilyMember = new FamilyMemberRequest(
-                    request.name(),
-                    request.relation(),
-                    request.allergyIds(),
-                    request.diseaseIds());
-
-                familyMembersToCreate.add(newFamilyMember);
-
-                continue;
-            }
-
-            FamilyMember familyMember = existingMembers.remove(request.id());
-
-            if (familyMember == null) {
-                throw new FamilyMemberNotFoundException(
-                    "Family member not found with id: " + request.id());
-            }
-
-            familyMember.setName(request.name());
-            familyMember.setRelation(request.relation());
-
-            if (request.allergyIds() != null) {
-                familyMember.getAllergies().clear();
-                userRepository.flush();
-
-                for (Integer allergyId : request.allergyIds()) {
-                    familyMember.getAllergies()
-                        .add(
-                            FamilyMemberAllergy.builder()
-                                .id(new FamilyMemberAllergyId(familyMember.getId(), allergyId))
-                                .familyMember(familyMember)
-                                .allergy(allergiesById.get(allergyId))
-                                .build());
-                }
-            }
-
-            if (request.diseaseIds() != null) {
-                familyMember.getDiseases().clear();
-                userRepository.flush();
-
-                for (Integer diseaseId : request.diseaseIds()) {
-                    familyMember.getDiseases()
-                        .add(
-                            FamilyMemberDisease.builder()
-                                .id(new FamilyMemberDiseaseId(familyMember.getId(), diseaseId))
-                                .familyMember(familyMember)
-                                .disease(diseasesById.get(diseaseId))
-                                .build());
-                }
-            }
-        }
-
-        buildFamilyMembers(user, familyMembersToCreate, allergiesById, diseasesById)
-            .forEach(user::addFamilyMember);
-
-        // Delete members that were removed by the user
-        existingMembers.values().forEach(user::removeFamilyMember);
-
-        userRepository.flush();
-    }
-
-    private void updateUserAllergies(User user, List<Integer> allergyIds) {
-
-        if (allergyIds == null) {
-            return;
-        }
-
-        user.getUserAllergies().clear();
-        userRepository.flush();
-
-        if (!allergyIds.isEmpty()) {
-            buildUserAllergies(user.getId(), user, allergyIds).forEach(user::addAllergy);
-        }
-
-        userRepository.flush();
-    }
-
-    private void updateUserDiseases(User user, List<Integer> diseaseIds) {
-
-        if (diseaseIds == null) {
-            return;
-        }
-
-        user.getUserDiseases().clear();
-        userRepository.flush();
-
-        if (!diseaseIds.isEmpty()) {
-            buildUserDiseases(user.getId(), user, diseaseIds).forEach(user::addDiseases);
-        }
-
-        userRepository.flush();
     }
 
     @Transactional
@@ -557,6 +380,32 @@ public class UserService {
         return new RestoreAccountResponse("Your account has been restored.", Instant.now());
     }
 
+    @Transactional
+    public FamilyMemberResponse uploadUserFamilyMemberImage(
+            UUID familyMemberId,
+            MultipartFile image,
+            Jwt jwt) {
+
+        ImageValidationUtils.validateImage(image);
+        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+
+        FamilyMember familyMember = familyMemberRepository
+                .findByIdWAndUserIdWithDetails(familyMemberId, userId)
+                .orElseThrow(
+                        () -> new FamilyMemberNotFoundException(
+                                "Family member not found with id: " + familyMemberId));
+
+        try {
+            String url = cloudinaryStorageService.uploadOrUpdateFamilyMember(image, familyMemberId);
+            familyMember.setImageUrl(url);
+
+            return familyMemberMapper.toResponse(familyMember);
+
+        } catch (IOException e) {
+            throw new ImageUploadException("Failed to upload image");
+        }
+    }
+
     // Helper Methods
     private Set<UserAllergy> buildUserAllergies(UUID userId, User user, List<Integer> allergyIds) {
         Set<Allergy> allergies = Set.of();
@@ -810,29 +659,174 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    @Transactional
-    public FamilyMemberResponse uploadUserFamilyMemberImage(
-        UUID familyMemberId,
-        MultipartFile image,
-        Jwt jwt) {
 
-        ImageValidationUtils.validateImage(image);
-        UUID userId = UUID.fromString(jwt.getClaim("sub"));
+    private void update(UUID id, UpdateProfileRequest userDetails) {
+        User user = userRepository.findByIdAndFamilyMembers(id).orElseThrow(
+                () -> new UserNotFoundException("User not found with id: " + id)
+        );
 
-        FamilyMember familyMember = familyMemberRepository
-            .findByIdWAndUserIdWithDetails(familyMemberId, userId)
-            .orElseThrow(
-                () -> new FamilyMemberNotFoundException(
-                    "Family member not found with id: " + familyMemberId));
-
-        try {
-            String url = cloudinaryStorageService.uploadOrUpdateFamilyMember(image, familyMemberId);
-            familyMember.setImageUrl(url);
-
-            return familyMemberMapper.toResponse(familyMember);
-
-        } catch (IOException e) {
-            throw new ImageUploadException("Failed to upload image");
+        if (userDetails.dateOfBirth() != null) {
+            user.setDateOfBirth(userDetails.dateOfBirth());
         }
+
+        if (userDetails.gender() != null) {
+            user.setGender(userDetails.gender());
+        }
+
+        if (userDetails.heightCm() != null) {
+            user.setHeightCm(userDetails.heightCm());
+        }
+
+        if (userDetails.weightKg() != null) {
+            user.setWeightKg(userDetails.weightKg());
+        }
+
+        updateUserAllergies(user, userDetails.allergyIds());
+
+        updateUserDiseases(user, userDetails.diseaseIds());
+
+        updateFamilyMembers(user, userDetails.familyMembers());
+    }
+
+    private void updateFamilyMembers(User user, List<FamilyMemberUpdateRequest> requests) {
+
+        if (requests == null) {
+            return;
+        }
+
+        Map<UUID, FamilyMember> existingMembers = user.getFamilyMembers()
+                .stream()
+                .collect(Collectors.toMap(FamilyMember::getId, Function.identity()));
+
+        Set<Integer> allAllergyIds = requests.stream()
+                .flatMap(r -> r.allergyIds() == null ? Stream.empty() : r.allergyIds().stream())
+                .collect(Collectors.toSet());
+
+        Set<Allergy> allergies = allergyRepository.findAllByIdIn(allAllergyIds);
+
+        Map<Integer, Allergy> allergiesById = allergies.stream()
+                .collect(Collectors.toMap(Allergy::getId, Function.identity()));
+
+        Set<Integer> missingAllergyIds = new HashSet<>(allAllergyIds);
+        missingAllergyIds.removeAll(allergiesById.keySet());
+
+        if (!missingAllergyIds.isEmpty()) {
+            throw new AllergyNotFoundException("Allergy not found with ids: " + missingAllergyIds);
+        }
+
+        Set<Integer> allDiseasesIds = requests.stream()
+                .flatMap(r -> r.diseaseIds() == null ? Stream.empty() : r.diseaseIds().stream())
+                .collect(Collectors.toSet());
+
+        Set<Disease> diseases = diseaseRepository.findAllByIdIn(allDiseasesIds);
+
+        Map<Integer, Disease> diseasesById = diseases.stream()
+                .collect(Collectors.toMap(Disease::getId, Function.identity()));
+
+        Set<Integer> missingDiseasesIds = new HashSet<>(allDiseasesIds);
+        missingDiseasesIds.removeAll(diseasesById.keySet());
+
+        if (!missingDiseasesIds.isEmpty()) {
+            throw new DiseaseNotFoundException("Disease not found with ids: " + missingDiseasesIds);
+        }
+
+        List<FamilyMemberRequest> familyMembersToCreate = new ArrayList<>();
+
+        for (FamilyMemberUpdateRequest request : requests) {
+
+            if (request.id() == null) {
+
+                // add to list to create later
+                FamilyMemberRequest newFamilyMember = new FamilyMemberRequest(
+                        request.name(),
+                        request.relation(),
+                        request.allergyIds(),
+                        request.diseaseIds());
+
+                familyMembersToCreate.add(newFamilyMember);
+
+                continue;
+            }
+
+            FamilyMember familyMember = existingMembers.remove(request.id());
+
+            if (familyMember == null) {
+                throw new FamilyMemberNotFoundException(
+                        "Family member not found with id: " + request.id());
+            }
+
+            familyMember.setName(request.name());
+            familyMember.setRelation(request.relation());
+
+            if (request.allergyIds() != null) {
+                familyMember.getAllergies().clear();
+                userRepository.flush();
+
+                for (Integer allergyId : request.allergyIds()) {
+                    familyMember.getAllergies()
+                            .add(
+                                    FamilyMemberAllergy.builder()
+                                            .id(new FamilyMemberAllergyId(familyMember.getId(), allergyId))
+                                            .familyMember(familyMember)
+                                            .allergy(allergiesById.get(allergyId))
+                                            .build());
+                }
+            }
+
+            if (request.diseaseIds() != null) {
+                familyMember.getDiseases().clear();
+                userRepository.flush();
+
+                for (Integer diseaseId : request.diseaseIds()) {
+                    familyMember.getDiseases()
+                            .add(
+                                    FamilyMemberDisease.builder()
+                                            .id(new FamilyMemberDiseaseId(familyMember.getId(), diseaseId))
+                                            .familyMember(familyMember)
+                                            .disease(diseasesById.get(diseaseId))
+                                            .build());
+                }
+            }
+        }
+
+        buildFamilyMembers(user, familyMembersToCreate, allergiesById, diseasesById)
+                .forEach(user::addFamilyMember);
+
+        // Delete members that were removed by the user
+        existingMembers.values().forEach(user::removeFamilyMember);
+
+        userRepository.flush();
+    }
+
+    private void updateUserAllergies(User user, List<Integer> allergyIds) {
+
+        if (allergyIds == null) {
+            return;
+        }
+
+        user.getUserAllergies().clear();
+        userRepository.flush();
+
+        if (!allergyIds.isEmpty()) {
+            buildUserAllergies(user.getId(), user, allergyIds).forEach(user::addAllergy);
+        }
+
+        userRepository.flush();
+    }
+
+    private void updateUserDiseases(User user, List<Integer> diseaseIds) {
+
+        if (diseaseIds == null) {
+            return;
+        }
+
+        user.getUserDiseases().clear();
+        userRepository.flush();
+
+        if (!diseaseIds.isEmpty()) {
+            buildUserDiseases(user.getId(), user, diseaseIds).forEach(user::addDiseases);
+        }
+
+        userRepository.flush();
     }
 }
