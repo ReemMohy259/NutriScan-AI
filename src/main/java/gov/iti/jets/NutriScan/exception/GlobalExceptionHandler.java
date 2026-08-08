@@ -259,20 +259,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(KeyCloakCreationException.class)
     public ResponseEntity<ApiErrorResponse> handleKeycloakCreationException(
-            KeyCloakCreationException ex,
-            HttpServletRequest request) {
+        KeyCloakCreationException ex,
+        HttpServletRequest request) {
 
         ApiErrorResponse response = ApiErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error("KEYCLOAK_CREATION_FAILED")
-                .message(ex.getMessage())
-                .path(request.getRequestURL().toString())
-                .build();
+            .timestamp(Instant.now())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .error("KEYCLOAK_CREATION_FAILED")
+            .message(ex.getMessage())
+            .path(request.getRequestURL().toString())
+            .build();
 
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(response);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(ImageTooBlurry.class)
