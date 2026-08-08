@@ -34,7 +34,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         left join fetch ua.allergy
         left join fetch u.userDiseases ud
         left join fetch ud.disease
-        left join fetch u.familyMembers
+        left join fetch u.familyMembers fm
+        left join fetch fm.allergies fma
+        left join fetch fma.allergy
+        left join fetch fm.diseases fmd
+        left join fetch fmd.disease
         where u.id = :id
         """)
     Optional<User> findByIdWithAllergiesAndDiseasesAndFamilyMembers(UUID id);
