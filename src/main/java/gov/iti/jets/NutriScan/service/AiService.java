@@ -51,6 +51,8 @@ public class AiService {
         this.structuredChatClient = structuredChatClient;
     }
 
+    @Cacheable(cacheNames = "aiJudge", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
+            + "#requestData.ingredients(), #requestData.allergies(), #requestData.conditions())")
     public FoodSafetyResponse checkSafety(IngredientsSafetyPrompt requestData) {
 
         String userPrompt = """
@@ -181,6 +183,7 @@ public class AiService {
         }
     }
 
+    @Cacheable(cacheNames = "aiSearch", key = "#productName", unless = "!(#productName != null && !#productName.isBlank() && !#productName.toLowerCase().equals('unknown'))")
     public SearchModelResponseDto searchForIngredientsModel(String query, String productName) {
 
         String webResult = tavilySearchTool.search(query);

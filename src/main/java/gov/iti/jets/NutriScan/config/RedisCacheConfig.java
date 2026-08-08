@@ -55,6 +55,8 @@ public class RedisCacheConfig {
         cacheConfigurations.put("userProfile", cacheConfig.entryTtl(Duration.ofDays(1)));
         cacheConfigurations.put("userSummary", cacheConfig.entryTtl(Duration.ofDays(1)));
         cacheConfigurations.put("aiBarcode", cacheConfig.entryTtl(Duration.ofDays(3)));
+        cacheConfigurations.put("aiSearch", cacheConfig.entryTtl(Duration.ofDays(3)));
+        cacheConfigurations.put("aiJudge", cacheConfig.entryTtl(Duration.ofDays(2)));
 
         return RedisCacheManager.builder(connectionFactory)
             .cacheDefaults(cacheConfig)
