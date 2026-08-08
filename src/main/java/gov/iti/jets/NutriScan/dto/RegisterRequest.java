@@ -8,13 +8,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-public record RegisterRequest(@NotBlank @Size(max = 100) String firstName,
+public record RegisterRequest(@NotBlank @Size(max = 100, min = 3) String firstName,
 
-    @NotBlank @Size(max = 100) String lastName,
+    @NotBlank @Size(max = 100, min = 3) String lastName,
 
     @NotBlank @Email @Size(max = 255) String email,
 
-    @NotBlank @Size(max = 100) String username,
+    @NotBlank @Size(max = 100, min = 3) String username,
 
     @NotBlank @Size(min = 8, max = 128) String password,
 

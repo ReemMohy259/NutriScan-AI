@@ -95,7 +95,7 @@ public class TavilySearchTool {
                     && !r.content().toLowerCase().contains("ingredients")) {
                     Document document = Jsoup.connect(r.url())
                         .userAgent("Mozilla/5.0")
-                        .timeout(10000)
+                        .timeout(7000)
                         .get();
 
                     String cleanText = document.body()

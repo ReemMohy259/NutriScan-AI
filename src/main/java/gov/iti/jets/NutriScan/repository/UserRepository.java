@@ -27,6 +27,22 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         """)
     Optional<User> findByIdWithAllergiesAndDiseases(UUID id);
 
+    @Query("""
+        select distinct u
+        from User u
+        left join fetch u.userAllergies ua
+        left join fetch ua.allergy
+        left join fetch u.userDiseases ud
+        left join fetch ud.disease
+        left join fetch u.familyMembers fm
+        left join fetch fm.allergies fma
+        left join fetch fma.allergy
+        left join fetch fm.diseases fmd
+        left join fetch fmd.disease
+        where u.id = :id
+        """)
+    Optional<User> findByIdWithAllergiesAndDiseasesAndFamilyMembers(UUID id);
+
     Page<User> findAllByAccountStatus(AccountStatus accountStatus, Pageable pageable);
 
     Page<User> findAllByAccountStatusAndToBeDeletedAtLessThanEqual(
@@ -52,4 +68,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         @Param("today") LocalDate today,
         @Param("yesterday") LocalDate yesterday);
 
+    @Query("""
+        select distinct u
+        from User u
+        left join fetch u.familyMembers
+        where u.id = :id
+        """)
+    Optional<User> findByIdAndFamilyMembers(UUID id);
 }
