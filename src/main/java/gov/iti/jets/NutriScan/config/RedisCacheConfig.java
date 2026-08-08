@@ -50,13 +50,14 @@ public class RedisCacheConfig {
 
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
 
-
-        cacheConfigurations.put("userAllergiesAndConditions", cacheConfig.entryTtl(Duration.ofHours(24)));
+        cacheConfigurations
+            .put("userAllergiesAndConditions", cacheConfig.entryTtl(Duration.ofHours(24)));
         cacheConfigurations.put("userProfile", cacheConfig.entryTtl(Duration.ofDays(1)));
         cacheConfigurations.put("userSummary", cacheConfig.entryTtl(Duration.ofDays(1)));
         cacheConfigurations.put("aiBarcode", cacheConfig.entryTtl(Duration.ofDays(3)));
-        cacheConfigurations.put("aiSearch", cacheConfig.entryTtl(Duration.ofDays(3)));
-        cacheConfigurations.put("aiJudge", cacheConfig.entryTtl(Duration.ofDays(2)));
+        cacheConfigurations.put("aiSearch", cacheConfig.entryTtl(Duration.ofDays(2)));
+        cacheConfigurations.put("aiJudge", cacheConfig.entryTtl(Duration.ofDays(1)));
+        cacheConfigurations.put("scans", cacheConfig.entryTtl(Duration.ofDays(1)));
 
         return RedisCacheManager.builder(connectionFactory)
             .cacheDefaults(cacheConfig)
