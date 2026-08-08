@@ -52,7 +52,7 @@ public class AiService {
     }
 
     @Cacheable(cacheNames = "aiJudge", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
-            + "#requestData.ingredients(), #requestData.allergies(), #requestData.conditions())")
+        + "#requestData.ingredients(), #requestData.allergies(), #requestData.conditions())")
     public FoodSafetyResponse checkSafety(IngredientsSafetyPrompt requestData) {
 
         String userPrompt = """

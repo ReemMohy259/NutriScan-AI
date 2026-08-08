@@ -16,9 +16,9 @@ public final class CacheKeys {
         return barcode + ':' + normalize(allergies) + ':' + normalize(conditions);
     }
     public static String safetyJudge(
-            List<String> ingredients,
-            List<String> allergies,
-            List<String> conditions) {
+        List<String> ingredients,
+        List<String> allergies,
+        List<String> conditions) {
         return normalize(ingredients) + ':' + normalize(allergies) + ':' + normalize(conditions);
     }
 
