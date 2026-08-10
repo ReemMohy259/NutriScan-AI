@@ -374,7 +374,8 @@ public class ScanService {
             scan.setFavorite(isFavorite);
 
         if (updated) {
-            eventPublisher.publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), scan.getStatus()));
+            eventPublisher
+                .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), scan.getStatus()));
         }
 
         return scanMapper.toResultResponse(scan);
@@ -388,47 +389,43 @@ public class ScanService {
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + id));
     }
 
-    public Page<ScanSummaryResponse> findScansByUserIdAndFilters(Jwt jwt, ScanSearchRequest request) {
+    public Page<ScanSummaryResponse> findScansByUserIdAndFilters(
+        Jwt jwt,
+        ScanSearchRequest request) {
 
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        Pageable pageable = PageRequest.of(
-                request.page(),
-                request.size());
+        Pageable pageable = PageRequest.of(request.page(), request.size());
 
         // No filters → PostgreSQL only
         if (!request.hasFilters()) {
 
-            Pageable sorted = PageRequest.of(
-                    request.page(),
-                    request.size(),
-                    Sort.by(Sort.Direction.DESC, "scannedAt"));
+            Pageable sorted = PageRequest
+                .of(request.page(), request.size(), Sort.by(Sort.Direction.DESC, "scannedAt"));
 
             return scanRepository.findSummaryByUserId(userId, sorted);
         }
 
         // Search Elasticsearch
         ScanSearchResult searchResult = scanSearchService.search(
-                userId,
-                request.query(),
-                request.verdict(),
-                request.scanStatus(),
-                request.date(),
-                pageable);
+            userId,
+            request.query(),
+            request.verdict(),
+            request.scanStatus(),
+            request.date(),
+            pageable);
 
         // Eventual consistency fallback
         if (searchResult.totalElements() == 0) {
 
-            Specification<Scan> specification =
-                    ScanSpecification.search(
-                            userId,
-                            request.query(),
-                            request.verdict(),
-                            request.scanStatus(),
-                            request.date());
+            Specification<Scan> specification = ScanSpecification.search(
+                userId,
+                request.query(),
+                request.verdict(),
+                request.scanStatus(),
+                request.date());
 
-            Page<Scan> scans =
-                    scanRepository.findAll(specification, pageable);
+            Page<Scan> scans = scanRepository.findAll(specification, pageable);
 
             return scans.map(scanMapper::toSummaryResponse);
         }
@@ -437,20 +434,15 @@ public class ScanService {
 
         List<ScanSummaryResponse> summaries = scanRepository.findSummaryByUserIdAndIds(userId, ids);
 
-        Map<UUID, ScanSummaryResponse> map =
-                summaries.stream()
-                .collect(Collectors.toMap(ScanSummaryResponse::scanId, Function.identity()));
+        Map<UUID, ScanSummaryResponse> map = summaries.stream()
+            .collect(Collectors.toMap(ScanSummaryResponse::scanId, Function.identity()));
 
-        List<ScanSummaryResponse> ordered =
-                ids.stream()
-                        .map(map::get)
-                        .filter(Objects::nonNull)
-                        .toList();
+        List<ScanSummaryResponse> ordered = ids.stream()
+            .map(map::get)
+            .filter(Objects::nonNull)
+            .toList();
 
-        return new PageImpl<>(
-                ordered,
-                pageable,
-                searchResult.totalElements());
+        return new PageImpl<>(ordered, pageable, searchResult.totalElements());
     }
 
     // Careful for N+1 queries

@@ -47,23 +47,21 @@ public interface ScanRepository extends JpaRepository<Scan, UUID>, JpaSpecificat
     Page<ScanSummaryResponse> findSummaryByUserId(@Param("userId") UUID userId, Pageable pageable);
 
     @Query("""
-    select new gov.iti.jets.NutriScan.dto.ScanSummaryResponse(
-        s.id,
-        s.imageUrl,
-        s.verdict,
-        s.scannedAt,
-        s.productName,
-        nf.calories,
-        s.status
-    )
-    from Scan s
-        left join s.nutritionFact nf
-    where s.user.id = :userId
-      and s.id in :ids
-    """)
-    List<ScanSummaryResponse> findSummaryByUserIdAndIds(
-            UUID userId,
-            Collection<UUID> ids);
+        select new gov.iti.jets.NutriScan.dto.ScanSummaryResponse(
+            s.id,
+            s.imageUrl,
+            s.verdict,
+            s.scannedAt,
+            s.productName,
+            nf.calories,
+            s.status
+        )
+        from Scan s
+            left join s.nutritionFact nf
+        where s.user.id = :userId
+          and s.id in :ids
+        """)
+    List<ScanSummaryResponse> findSummaryByUserIdAndIds(UUID userId, Collection<UUID> ids);
 
     @Query("""
         select new gov.iti.jets.NutriScan.dto.ScanSummaryResponse(

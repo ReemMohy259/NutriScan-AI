@@ -91,22 +91,21 @@ public class ScanController {
 
     @GetMapping
     public Page<ScanSummaryResponse> getScans(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be greater than or equal to 0") int page,
-            @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String query,
-            @RequestParam(required = false) Verdict verdict,
-            @RequestParam(required = false) ScanStatus scanStatus,
-            @RequestParam(required = false) LocalDate date) {
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be greater than or equal to 0") int page,
+        @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String query,
+        @RequestParam(required = false) Verdict verdict,
+        @RequestParam(required = false) ScanStatus scanStatus,
+        @RequestParam(required = false) LocalDate date) {
 
         ScanSearchRequest request = new ScanSearchRequest(
-                query,
-                verdict,
-                scanStatus,
-                date,
-                page,
-                size
-        );
+            query,
+            verdict,
+            scanStatus,
+            date,
+            page,
+            size);
 
         return scanService.findScansByUserIdAndFilters(jwt, request);
     }

@@ -66,26 +66,20 @@ public class RabbitMQConfig {
 
     @Bean
     public DirectExchange scanExchange() {
-        return ExchangeBuilder
-                .directExchange(scanExchangeName)
-                .durable(true)
-                .build();
+        return ExchangeBuilder.directExchange(scanExchangeName).durable(true).build();
     }
 
     @Bean
     public DirectExchange scanDlx() {
-        return ExchangeBuilder
-                .directExchange(scanDlxName)
-                .durable(true)
-                .build();
+        return ExchangeBuilder.directExchange(scanDlxName).durable(true).build();
     }
 
     @Bean
     public Queue scanIndexQueue() {
         return QueueBuilder.durable(scanIndexQueue)
-                .deadLetterExchange(scanDlxName)
-                .deadLetterRoutingKey(scanIndexDlqRoutingKey)
-                .build();
+            .deadLetterExchange(scanDlxName)
+            .deadLetterRoutingKey(scanIndexDlqRoutingKey)
+            .build();
     }
 
     @Bean
@@ -96,9 +90,9 @@ public class RabbitMQConfig {
     @Bean
     public Queue scanDeleteQueue() {
         return QueueBuilder.durable(scanDeleteQueue)
-                .deadLetterExchange(scanDlxName)
-                .deadLetterRoutingKey(scanDeleteDlqRoutingKey)
-                .build();
+            .deadLetterExchange(scanDlxName)
+            .deadLetterRoutingKey(scanDeleteDlqRoutingKey)
+            .build();
     }
 
     @Bean
@@ -109,9 +103,9 @@ public class RabbitMQConfig {
     @Bean
     public Queue userDeleteQueue() {
         return QueueBuilder.durable(userDeleteQueue)
-                .deadLetterExchange(scanDlxName)
-                .deadLetterRoutingKey(userDeleteDlqRoutingKey)
-                .build();
+            .deadLetterExchange(scanDlxName)
+            .deadLetterRoutingKey(userDeleteDlqRoutingKey)
+            .build();
     }
 
     @Bean
@@ -121,82 +115,67 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue scanIndexRetryQueue() {
-        return QueueBuilder
-                .durable(scanIndexRetryQueue)
-                .ttl(30_000)
-                .deadLetterExchange(scanExchangeName)
-                .deadLetterRoutingKey(scanIndexRoutingKey)
-                .build();
+        return QueueBuilder.durable(scanIndexRetryQueue)
+            .ttl(30_000)
+            .deadLetterExchange(scanExchangeName)
+            .deadLetterRoutingKey(scanIndexRoutingKey)
+            .build();
     }
 
     @Bean
     public Binding scanIndexBinding(
-            @Qualifier("scanIndexQueue") Queue queue,
-            @Qualifier("scanExchange") DirectExchange exchange) {
+        @Qualifier("scanIndexQueue") Queue queue,
+        @Qualifier("scanExchange") DirectExchange exchange) {
 
-        return BindingBuilder.bind(queue)
-                .to(exchange)
-                .with(scanIndexRoutingKey);
+        return BindingBuilder.bind(queue).to(exchange).with(scanIndexRoutingKey);
     }
 
     @Bean
     public Binding scanIndexDlqBinding(
-            @Qualifier("scanIndexDlq") Queue queue,
-            @Qualifier("scanDlx") DirectExchange exchange) {
+        @Qualifier("scanIndexDlq") Queue queue,
+        @Qualifier("scanDlx") DirectExchange exchange) {
 
-        return BindingBuilder.bind(queue)
-                .to(exchange)
-                .with(scanIndexDlqRoutingKey);
+        return BindingBuilder.bind(queue).to(exchange).with(scanIndexDlqRoutingKey);
     }
 
     @Bean
     public Binding scanDeleteBinding(
-            @Qualifier("scanDeleteQueue") Queue queue,
-            @Qualifier("scanExchange") DirectExchange exchange) {
+        @Qualifier("scanDeleteQueue") Queue queue,
+        @Qualifier("scanExchange") DirectExchange exchange) {
 
-        return BindingBuilder.bind(queue)
-                .to(exchange)
-                .with(scanDeleteRoutingKey);
+        return BindingBuilder.bind(queue).to(exchange).with(scanDeleteRoutingKey);
     }
 
     @Bean
     public Binding scanDeleteDlqBinding(
-            @Qualifier("scanDeleteDlq") Queue queue,
-            @Qualifier("scanDlx") DirectExchange exchange) {
+        @Qualifier("scanDeleteDlq") Queue queue,
+        @Qualifier("scanDlx") DirectExchange exchange) {
 
-        return BindingBuilder.bind(queue)
-                .to(exchange)
-                .with(scanDeleteDlqRoutingKey);
+        return BindingBuilder.bind(queue).to(exchange).with(scanDeleteDlqRoutingKey);
     }
 
     @Bean
     public Binding userDeleteBinding(
-            @Qualifier("userDeleteQueue") Queue queue,
-            @Qualifier("scanExchange") DirectExchange exchange) {
+        @Qualifier("userDeleteQueue") Queue queue,
+        @Qualifier("scanExchange") DirectExchange exchange) {
 
-        return BindingBuilder.bind(queue)
-                .to(exchange)
-                .with(userDeleteRoutingKey);
+        return BindingBuilder.bind(queue).to(exchange).with(userDeleteRoutingKey);
     }
 
     @Bean
     public Binding userDeleteDlqBinding(
-            @Qualifier("userDeleteDlq") Queue queue,
-            @Qualifier("scanDlx") DirectExchange exchange) {
+        @Qualifier("userDeleteDlq") Queue queue,
+        @Qualifier("scanDlx") DirectExchange exchange) {
 
-        return BindingBuilder.bind(queue)
-                .to(exchange)
-                .with(userDeleteDlqRoutingKey);
+        return BindingBuilder.bind(queue).to(exchange).with(userDeleteDlqRoutingKey);
     }
 
     @Bean
     public Binding scanIndexRetryQueueBinding(
-            @Qualifier("scanIndexRetryQueue") Queue queue,
-            @Qualifier("scanExchange") DirectExchange exchange) {
+        @Qualifier("scanIndexRetryQueue") Queue queue,
+        @Qualifier("scanExchange") DirectExchange exchange) {
 
-        return BindingBuilder.bind(queue)
-                .to(exchange)
-                .with(scanIndexRetryRoutingKey);
+        return BindingBuilder.bind(queue).to(exchange).with(scanIndexRetryRoutingKey);
     }
 
     @Bean
@@ -205,8 +184,9 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
-                                         MessageConverter messageConverter) {
+    public RabbitTemplate rabbitTemplate(
+        ConnectionFactory connectionFactory,
+        MessageConverter messageConverter) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
 
         template.setConnectionFactory(connectionFactory);
@@ -220,23 +200,20 @@ public class RabbitMQConfig {
             }
 
             log.error(
-                    "Failed to publish RabbitMQ message. Correlation={}, Cause={}",
-                    correlation,
-                    cause);
+                "Failed to publish RabbitMQ message. Correlation={}, Cause={}",
+                correlation,
+                cause);
         });
 
         template.setReturnsCallback(returned -> {
 
             log.error("""
-            Returned message
+                Returned message
 
-            Exchange : {}
-            Routing key : {}
-            Reply : {}
-            """,
-                    returned.getExchange(),
-                    returned.getRoutingKey(),
-                    returned.getReplyText());
+                Exchange : {}
+                Routing key : {}
+                Reply : {}
+                """, returned.getExchange(), returned.getRoutingKey(), returned.getReplyText());
         });
 
         return template;
@@ -244,8 +221,8 @@ public class RabbitMQConfig {
 
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory,
-            MessageConverter messageConverter) {
+        ConnectionFactory connectionFactory,
+        MessageConverter messageConverter) {
 
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
 

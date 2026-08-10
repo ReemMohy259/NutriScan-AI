@@ -24,12 +24,8 @@ public class ScanDocument {
     @Field(type = FieldType.Keyword)
     private UUID userId;
 
-    @MultiField(
-            mainField = @Field(type = FieldType.Text, analyzer = "standard"),
-            otherFields = {
-                    @InnerField(suffix = "keyword", type = FieldType.Keyword)
-            }
-    )
+    @MultiField(mainField = @Field(type = FieldType.Text, analyzer = "standard"), otherFields = {
+            @InnerField(suffix = "keyword", type = FieldType.Keyword)})
     private String productName;
 
     @Field(type = FieldType.Keyword)

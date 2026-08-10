@@ -125,14 +125,13 @@ public interface ScanMapper {
         }
 
         return new ScanSummaryResponse(
-                scan.getId(),
-                scan.getImageUrl(),
-                scan.getVerdict(),
-                scan.getScannedAt(),
-                scan.getProductName(),
-                calories,
-                scan.getStatus()
-        );
+            scan.getId(),
+            scan.getImageUrl(),
+            scan.getVerdict(),
+            scan.getScannedAt(),
+            scan.getProductName(),
+            calories,
+            scan.getStatus());
     }
 
     default String mapProductName(String name) {

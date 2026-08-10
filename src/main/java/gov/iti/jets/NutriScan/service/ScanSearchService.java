@@ -35,19 +35,17 @@ public class ScanSearchService {
     private final ElasticsearchClient elasticsearchClient;
 
     public ScanSearchResult search(
-            UUID userId,
-            String query,
-            Verdict verdict,
-            ScanStatus scanStatus,
-            LocalDate date,
-            Pageable pageable) {
+        UUID userId,
+        String query,
+        Verdict verdict,
+        ScanStatus scanStatus,
+        LocalDate date,
+        Pageable pageable) {
 
         BoolQuery.Builder boolQuery = new BoolQuery.Builder();
 
         // Always filter by owner
-        boolQuery.filter(f -> f.term(t -> t
-                .field("userId")
-                .value(userId.toString())));
+        boolQuery.filter(f -> f.term(t -> t.field("userId").value(userId.toString())));
 
         // Product name search: no fuzzy search when 1 or 2 characters
         if (StringUtils.hasText(query)) {
@@ -69,51 +67,39 @@ public class ScanSearchService {
 
         // Verdict filter
         if (verdict != null) {
-            boolQuery.filter(f -> f.term(t -> t
-                    .field("verdict")
-                    .value(verdict.name())));
+            boolQuery.filter(f -> f.term(t -> t.field("verdict").value(verdict.name())));
         }
 
         // Scan status filter
         if (scanStatus != null) {
-            boolQuery.filter(f -> f.term(t -> t
-                    .field("scanStatus")
-                    .value(scanStatus.name())));
+            boolQuery.filter(f -> f.term(t -> t.field("scanStatus").value(scanStatus.name())));
         }
 
         // Date filter (ignores time)
         if (date != null) {
 
             Instant from = date.atStartOfDay(ZoneOffset.UTC).toInstant();
-            Instant to = date.plusDays(1)
-                    .atStartOfDay(ZoneOffset.UTC)
-                    .toInstant();
+            Instant to = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
-            boolQuery.filter(f -> f.range(r -> r
-                    .date(d -> d
-                            .field("scannedAt")
-                            .gte(from.toString())
-                            .lt(to.toString())
-                    )));
+            boolQuery.filter(
+                f -> f.range(
+                    r -> r.date(d -> d.field("scannedAt").gte(from.toString()).lt(to.toString()))));
         }
 
         NativeQuery nativeQuery = NativeQuery.builder()
-                .withQuery(q -> q.bool(boolQuery.build()))
-                .withPageable(pageable)
-                .withSort(sort -> sort.field(f -> f
-                        .field("scannedAt")
-                        .order(SortOrder.Desc)))
-                .withSourceFilter(
-                        FetchSourceFilter.of(f -> f.withIncludes("id")))
-                .build();
+            .withQuery(q -> q.bool(boolQuery.build()))
+            .withPageable(pageable)
+            .withSort(sort -> sort.field(f -> f.field("scannedAt").order(SortOrder.Desc)))
+            .withSourceFilter(FetchSourceFilter.of(f -> f.withIncludes("id")))
+            .build();
 
-        SearchHits<ScanDocument> hits =
-                elasticsearchOperations.search(nativeQuery, ScanDocument.class);
+        SearchHits<ScanDocument> hits = elasticsearchOperations
+            .search(nativeQuery, ScanDocument.class);
 
         List<UUID> ids = hits.getSearchHits()
-                .stream()
-                .map(hit -> hit.getContent().getId())
-                .toList();
+            .stream()
+            .map(hit -> hit.getContent().getId())
+            .toList();
 
         return new ScanSearchResult(ids, hits.getTotalHits());
     }
@@ -121,18 +107,15 @@ public class ScanSearchService {
     public void deleteAllByUserId(UUID userId) {
 
         try {
-            DeleteByQueryResponse response = elasticsearchClient.deleteByQuery(d -> d
-                    .index("scans")
-                    .query(q -> q
-                            .term(t -> t
-                                    .field("userId")
-                                    .value(userId.toString()))));
+            DeleteByQueryResponse response = elasticsearchClient.deleteByQuery(
+                d -> d.index("scans")
+                    .query(q -> q.term(t -> t.field("userId").value(userId.toString()))));
 
-            log.info("Deleted {} scan documents for user {}",
-                    response.deleted(),
-                    userId);
+            log.info("Deleted {} scan documents for user {}", response.deleted(), userId);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to delete scan documents from Elasticsearch for user " + userId, e);
+            throw new IllegalStateException(
+                "Failed to delete scan documents from Elasticsearch for user " + userId,
+                e);
         }
     }
 }
