@@ -1,6 +1,8 @@
 package gov.iti.jets.NutriScan.controller;
 
 import gov.iti.jets.NutriScan.dto.*;
+import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
+import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
 import gov.iti.jets.NutriScan.service.ScanService;
 import gov.iti.jets.NutriScan.util.ImageValidationUtils;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -88,13 +91,24 @@ public class ScanController {
 
     @GetMapping
     public Page<ScanSummaryResponse> getScans(
-        @AuthenticationPrincipal Jwt jwt,
-        @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be greater than or equal to 0") int page,
-        @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") @RequestParam(defaultValue = "20") int size) {
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be greater than or equal to 0") int page,
+            @Min(value = 1, message = "Size must be at least 1") @Max(value = 100, message = "Size must not exceed 100") @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) Verdict verdict,
+            @RequestParam(required = false) ScanStatus scanStatus,
+            @RequestParam(required = false) LocalDate date) {
 
-        Pageable validated = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        ScanSearchRequest request = new ScanSearchRequest(
+                query,
+                verdict,
+                scanStatus,
+                date,
+                page,
+                size
+        );
 
-        return scanService.findByUserId(jwt, validated);
+        return scanService.findScansByUserIdAndFilters(jwt, request);
     }
 
     @GetMapping("/favorites")
@@ -106,5 +120,12 @@ public class ScanController {
         Pageable validated = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         return scanService.findFavoritesByUserId(jwt, validated);
+    }
+
+    @DeleteMapping("/{scanId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteScan(@AuthenticationPrincipal Jwt jwt, @PathVariable String scanId) {
+
+        scanService.deleteScan(jwt, scanId);
     }
 }

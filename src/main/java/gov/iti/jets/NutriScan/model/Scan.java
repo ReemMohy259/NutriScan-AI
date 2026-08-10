@@ -11,6 +11,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -66,6 +67,10 @@ public class Scan {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "scan_id")
     private Set<ScanFlaggedIngredient> scanFlaggedIngredients = new LinkedHashSet<>();
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JoinColumn(name = "scan_id")
+    private Set<DailyTrackingMeal> dailyTrackingMeals = new HashSet<>();
 
     @Column(nullable = false)
     @Builder.Default

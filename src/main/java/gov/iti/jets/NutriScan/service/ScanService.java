@@ -4,6 +4,8 @@ import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.dto.ai.*;
 import gov.iti.jets.NutriScan.dto.ai.barcode.BarCodeProductDto;
 import gov.iti.jets.NutriScan.exception.*;
+import gov.iti.jets.NutriScan.listener.event.ScanDeletedEvent;
+import gov.iti.jets.NutriScan.listener.event.ScanStatusChangedEvent;
 import gov.iti.jets.NutriScan.mapper.NutritionFactMapper;
 import gov.iti.jets.NutriScan.mapper.ScanMapper;
 import gov.iti.jets.NutriScan.model.NutritionFact;
@@ -12,13 +14,14 @@ import gov.iti.jets.NutriScan.model.ScanFlaggedIngredient;
 import gov.iti.jets.NutriScan.model.User;
 import gov.iti.jets.NutriScan.repository.ScanRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
+import gov.iti.jets.NutriScan.repository.specification.ScanSpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -26,14 +29,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ScanService {
-    private final AiService aiService;
 
+    private final AiService aiService;
     private final ScanRepository scanRepository;
     private final UserRepository userRepository;
     private final UserService userService;
@@ -42,6 +49,7 @@ public class ScanService {
     private final NutritionFactMapper nutritionFactMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final OpenFoodFactsService openFoodFactsService;
+    private final ScanSearchService scanSearchService;
 
     @Transactional
     public ScanSubmitResponse addNewScan(Jwt jwt, MultipartFile file) {
@@ -350,17 +358,28 @@ public class ScanService {
 
     @Transactional
     public ScanResultResponse updateScan(UUID scanId, String name, Boolean isFavorite, Jwt jwt) {
+
         UUID userId = UUID.fromString(jwt.getSubject());
         Scan scan = scanRepository.findByIdWithDetails(scanId, userId)
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
-        if (name != null)
+
+        boolean updated = false;
+
+        if (name != null && !name.equals(scan.getProductName())) {
             scan.setProductName(name);
+            updated = true;
+        }
 
         if (isFavorite != null)
             scan.setFavorite(isFavorite);
 
+        if (updated) {
+            eventPublisher.publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), scan.getStatus()));
+        }
+
         return scanMapper.toResultResponse(scan);
     }
+
     public ScanResultResponse findById(UUID id, Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
@@ -369,11 +388,69 @@ public class ScanService {
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + id));
     }
 
-    // Careful for N+1 queries
-    public Page<ScanSummaryResponse> findByUserId(Jwt jwt, Pageable pageable) {
+    public Page<ScanSummaryResponse> findScansByUserIdAndFilters(Jwt jwt, ScanSearchRequest request) {
+
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        return scanRepository.findSummaryByUserId(userId, pageable);
+        Pageable pageable = PageRequest.of(
+                request.page(),
+                request.size());
+
+        // No filters → PostgreSQL only
+        if (!request.hasFilters()) {
+
+            Pageable sorted = PageRequest.of(
+                    request.page(),
+                    request.size(),
+                    Sort.by(Sort.Direction.DESC, "scannedAt"));
+
+            return scanRepository.findSummaryByUserId(userId, sorted);
+        }
+
+        // Search Elasticsearch
+        ScanSearchResult searchResult = scanSearchService.search(
+                userId,
+                request.query(),
+                request.verdict(),
+                request.scanStatus(),
+                request.date(),
+                pageable);
+
+        // Eventual consistency fallback
+        if (searchResult.totalElements() == 0) {
+
+            Specification<Scan> specification =
+                    ScanSpecification.search(
+                            userId,
+                            request.query(),
+                            request.verdict(),
+                            request.scanStatus(),
+                            request.date());
+
+            Page<Scan> scans =
+                    scanRepository.findAll(specification, pageable);
+
+            return scans.map(scanMapper::toSummaryResponse);
+        }
+
+        List<UUID> ids = searchResult.ids();
+
+        List<ScanSummaryResponse> summaries = scanRepository.findSummaryByUserIdAndIds(userId, ids);
+
+        Map<UUID, ScanSummaryResponse> map =
+                summaries.stream()
+                .collect(Collectors.toMap(ScanSummaryResponse::scanId, Function.identity()));
+
+        List<ScanSummaryResponse> ordered =
+                ids.stream()
+                        .map(map::get)
+                        .filter(Objects::nonNull)
+                        .toList();
+
+        return new PageImpl<>(
+                ordered,
+                pageable,
+                searchResult.totalElements());
     }
 
     // Careful for N+1 queries
@@ -383,7 +460,14 @@ public class ScanService {
         return scanRepository.findFavoritesByUserId(userId, pageable);
     }
 
-    public void delete(UUID id) {
-        scanRepository.deleteById(id);
+    @Transactional
+    public void deleteScan(Jwt jwt, String scanId) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        UUID id = UUID.fromString(scanId);
+
+        eventPublisher.publishEvent(new ScanDeletedEvent(id));
+
+        scanRepository.deleteScanByIdAndUserId(id, userId);
     }
 }
