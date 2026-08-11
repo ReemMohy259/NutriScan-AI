@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,8 +18,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ScanRepository extends JpaRepository<Scan, UUID>, JpaSpecificationExecutor<Scan> {
-
-    List<Scan> findByStatus(String status);
 
     @Query("""
             select distinct s
@@ -37,7 +36,7 @@ public interface ScanRepository extends JpaRepository<Scan, UUID>, JpaSpecificat
             s.scannedAt,
             s.productName,
             nf.calories,
-            s.status
+                    s.status
         )
             from Scan s
                 left join s.nutritionFact nf
@@ -89,4 +88,8 @@ public interface ScanRepository extends JpaRepository<Scan, UUID>, JpaSpecificat
     Page<Scan> findAll(@NonNull Specification<Scan> specification, @NonNull Pageable pageable);
 
     void deleteScanByIdAndUserId(UUID scanId, UUID userID);
+
+    @Query("delete from Scan s where s.id = :id and s.user.id = :userId")
+    @Modifying
+    void deleteByIdAndUserId(UUID id, UUID userId);
 }

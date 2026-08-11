@@ -15,6 +15,12 @@ public final class CacheKeys {
         List<String> conditions) {
         return barcode + ':' + normalize(allergies) + ':' + normalize(conditions);
     }
+    public static String safetyJudge(
+        List<String> ingredients,
+        List<String> allergies,
+        List<String> conditions) {
+        return normalize(ingredients) + ':' + normalize(allergies) + ':' + normalize(conditions);
+    }
 
     private static String normalize(List<String> values) {
         if (values == null || values.isEmpty()) {

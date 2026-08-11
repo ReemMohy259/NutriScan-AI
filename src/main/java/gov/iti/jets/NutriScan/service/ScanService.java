@@ -19,6 +19,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -49,6 +54,7 @@ public class ScanService {
     private final NutritionFactMapper nutritionFactMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final OpenFoodFactsService openFoodFactsService;
+    private final CacheManager cacheManager;
     private final ScanSearchService scanSearchService;
 
     @Transactional
@@ -311,6 +317,7 @@ public class ScanService {
         }
     }
 
+    // caching inside the method body
     private void updateCompletedScan(
         String productName,
         Scan scan,
@@ -352,11 +359,19 @@ public class ScanService {
                         .reason(flaggedIngredient.reason())
                         .build()));
 
+        Cache cache = cacheManager.getCache("scans");
+        if (cache != null) {
+            cache.put(
+                scan.getId().toString() + ':' + userId.toString(),
+                scanMapper.toResultResponse(scan));
+        }
+
         eventPublisher
             .publishEvent(new ScanStatusChangedEvent(userId, scan.getId(), ScanStatus.COMPLETED));
     }
 
     @Transactional
+    @CachePut(value = "scans", key = "#scanId.toString() + ':' + #jwt.getSubject()")
     public ScanResultResponse updateScan(UUID scanId, String name, Boolean isFavorite, Jwt jwt) {
 
         UUID userId = UUID.fromString(jwt.getSubject());
@@ -381,6 +396,7 @@ public class ScanService {
         return scanMapper.toResultResponse(scan);
     }
 
+    @Cacheable(value = "scans", key = "#id.toString() + ':' + #jwt.getSubject()", unless = "#result.status() == T(gov.iti.jets.NutriScan.dto.ai.ScanStatus).PROCESSING")
     public ScanResultResponse findById(UUID id, Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
@@ -453,6 +469,7 @@ public class ScanService {
     }
 
     @Transactional
+    @CacheEvict(value = "scans", key = "#scanId + ':' + #jwt.getSubject()")
     public void deleteScan(Jwt jwt, String scanId) {
         UUID userId = UUID.fromString(jwt.getSubject());
 
