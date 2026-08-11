@@ -13,10 +13,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -39,6 +39,7 @@ public class ScanEventPublisherListener {
     private final ElasticsearchSyncRepository syncRepository;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onScanStatusChange(ScanStatusChangedEvent event) {
 
         if (event.status() == ScanStatus.PROCESSING) {
@@ -47,7 +48,6 @@ public class ScanEventPublisherListener {
 
         syncRepository.save(
             ElasticsearchSync.builder()
-                .id(UUID.randomUUID())
                 .entityType(EntityType.SCAN)
                 .entityId(event.scanId())
                 .operation(SyncOperation.UPSERT)
@@ -57,6 +57,7 @@ public class ScanEventPublisherListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onScanDeleted(ScanDeletedEvent event) {
 
         syncRepository.save(
@@ -70,6 +71,7 @@ public class ScanEventPublisherListener {
     }
 
     @EventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onUserDeleted(UserDeletedEvent event) {
 
         syncRepository.save(

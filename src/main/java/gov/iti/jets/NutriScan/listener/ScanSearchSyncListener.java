@@ -1,12 +1,16 @@
 package gov.iti.jets.NutriScan.listener;
 
+import gov.iti.jets.NutriScan.exception.ResourceNotFoundException;
 import gov.iti.jets.NutriScan.exception.ScanNotFoundException;
 import gov.iti.jets.NutriScan.listener.event.ScanDeletedEvent;
 import gov.iti.jets.NutriScan.listener.event.ScanStatusChangedEvent;
 import gov.iti.jets.NutriScan.listener.event.UserDeletedEvent;
 import gov.iti.jets.NutriScan.mapper.ScanMapper;
+import gov.iti.jets.NutriScan.model.ElasticsearchSync;
+import gov.iti.jets.NutriScan.model.EntityType;
 import gov.iti.jets.NutriScan.model.Scan;
 import gov.iti.jets.NutriScan.model.elasticsearch.ScanDocument;
+import gov.iti.jets.NutriScan.repository.ElasticsearchSyncRepository;
 import gov.iti.jets.NutriScan.repository.ScanRepository;
 import gov.iti.jets.NutriScan.repository.elasticsearch.ScanSearchRepository;
 import gov.iti.jets.NutriScan.service.ScanSearchService;
@@ -17,6 +21,10 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -25,6 +33,7 @@ public class ScanSearchSyncListener {
 
     private final ScanRepository scanRepository;
     private final ScanSearchRepository scanSearchRepository;
+    private final ElasticsearchSyncRepository elasticsearchSyncRepository;
     private final ScanSearchService scanSearchService;
     private final ScanMapper scanMapper;
     private final RabbitTemplate rabbitTemplate;
@@ -45,6 +54,7 @@ public class ScanSearchSyncListener {
     private static final String RETRY_HEADER = "x-retry-count";
 
     @RabbitListener(queues = "${rabbitmq.scan.index.queue.name}")
+    @Transactional
     public void insertScanDocumentToElasticSearch(ScanStatusChangedEvent event, Message message) {
 
         try {
@@ -54,6 +64,8 @@ public class ScanSearchSyncListener {
             ScanDocument document = scanMapper.toDocument(scan);
 
             scanSearchRepository.save(document);
+
+            updateSynchronizationTableState(event.scanId(), EntityType.SCAN);
 
             log.info("Indexed scan {}", event.scanId());
         } catch (Exception ex) {
@@ -87,15 +99,20 @@ public class ScanSearchSyncListener {
     }
 
     @RabbitListener(queues = "${rabbitmq.scan.delete.queue.name}")
+    @Transactional
     public void deleteScanDocument(ScanDeletedEvent event) {
 
         scanSearchRepository.deleteById(event.scanId());
+
+        updateSynchronizationTableState(event.scanId(), EntityType.SCAN);
     }
 
     @RabbitListener(queues = "${rabbitmq.user.delete.queue.name}")
+    @Transactional
     public void deleteUser(UserDeletedEvent event) {
 
         scanSearchService.deleteAllByUserId(event.userId());
+        updateSynchronizationTableState(event.userId(), EntityType.USER);
     }
 
     @RabbitListener(queues = "${rabbitmq.scan.index.dlq.name}")
@@ -136,5 +153,19 @@ public class ScanSearchSyncListener {
         }
 
         return 0;
+    }
+
+    private void updateSynchronizationTableState(UUID entityId, EntityType entityType) {
+        ElasticsearchSync elasticsearchSync = elasticsearchSyncRepository
+            .findByEntityIdAndEntityType(entityId, entityType)
+            .orElseThrow(
+                () -> new ResourceNotFoundException(
+                    "No record found in elasticsearch_sync with %s and entity type %s"
+                        .formatted(entityId, entityType)));
+
+        elasticsearchSync.setProcessed(true);
+        elasticsearchSync.setProcessedAt(Instant.now());
+
+        elasticsearchSyncRepository.save(elasticsearchSync);
     }
 }
