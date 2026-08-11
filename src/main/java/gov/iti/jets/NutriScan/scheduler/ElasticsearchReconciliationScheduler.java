@@ -30,7 +30,8 @@ public class ElasticsearchReconciliationScheduler {
 
     private final ScanSearchService scanSearchService;
 
-    @Scheduled(fixedDelay = 60_00_00)
+    // runs every 30 minutes
+    @Scheduled(fixedDelay = 30_00_00)
     @Transactional
     public void reconcileNonIndexedScans() {
 
