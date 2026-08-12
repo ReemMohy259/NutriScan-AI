@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -31,7 +32,7 @@ public class ElasticsearchReconciliationScheduler {
     private final ScanSearchService scanSearchService;
 
     // runs every 30 minutes
-    @Scheduled(fixedDelay = 30_00_00)
+    @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.MINUTES)
     @Transactional
     public void reconcileNonIndexedScans() {
 
