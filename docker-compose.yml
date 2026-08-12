@@ -134,7 +134,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     volumes:
-      - rabbitmq-data:/usr/share/elasticsearch/data
+      - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 10s
