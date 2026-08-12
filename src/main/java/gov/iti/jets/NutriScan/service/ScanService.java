@@ -435,14 +435,14 @@ public class ScanService {
                 request.date(),
                 pageable);
 
-        } catch (DataAccessResourceFailureException e) {
+        } catch (Exception e) {
 
-            log.warn("Elasticsearch is unavailable. " + "Falling back to PostgreSQL.", e);
+            log.warn("Elasticsearch is unavailable. Falling back to PostgreSQL.", e);
 
             return searchUsingSpecification(userId, request, pageable);
         }
 
-        // Elasticsearch is available, but may not contain the newly-created scan yet.
+        // Elasticsearch is available but may not contain the newly-created scan yet.
         if (searchResult.totalElements() == 0) {
             return searchUsingSpecification(userId, request, pageable);
         }
