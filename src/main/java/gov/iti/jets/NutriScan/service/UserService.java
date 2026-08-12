@@ -478,7 +478,6 @@ public class UserService {
             throw new AllergyNotFoundException("Allergy not found with ids: " + notFoundIds);
         }
 
-        // TODO: fix multiple select and insert statements (maybe batch them)
         return allergies.stream().map(allergy -> {
 
             UserAllergy userAllergy = new UserAllergy();

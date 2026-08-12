@@ -10,9 +10,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -337,6 +339,43 @@ public class GlobalExceptionHandler {
             .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatchExceptions(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+
+        String issue = "Invalid value: " + ex.getValue();
+
+        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
+            String allowedValues = Arrays.stream(ex.getRequiredType().getEnumConstants())
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", "));
+
+            issue = String.format(
+                    "Invalid value '%s'. Allowed values: %s",
+                    ex.getValue(),
+                    allowedValues
+            );
+        }
+
+        List<ApiErrorResponse.ErrorDetail> details = List.of(
+                ApiErrorResponse.ErrorDetail.builder()
+                        .field(ex.getName())
+                        .issue(issue)
+                        .build()
+        );
+
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("VALIDATION_ERROR")
+                .message("Invalid request parameter")
+                .details(details)
+                .path(request.getRequestURL().toString())
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(AccountNotPendingDeletionException.class)
