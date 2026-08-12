@@ -3,6 +3,7 @@ package gov.iti.jets.NutriScan.service;
 import gov.iti.jets.NutriScan.config.properties.AccountProperties;
 import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.exception.*;
+import gov.iti.jets.NutriScan.listener.event.UserDeletedEvent;
 import gov.iti.jets.NutriScan.mapper.AllergyMapper;
 import gov.iti.jets.NutriScan.mapper.DiseaseMapper;
 import gov.iti.jets.NutriScan.mapper.FamilyMemberMapper;
@@ -21,6 +22,7 @@ import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
@@ -49,7 +51,6 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
-    private final UserMapper userMapper;
 
     @Value("${keycloak.realm.name}")
     private String realmName;
@@ -61,6 +62,8 @@ public class UserService {
     private final AllergyRepository allergyRepository;
 
     private final DiseaseRepository diseaseRepository;
+
+    private final UserMapper userMapper;
 
     private final AllergyMapper allergyMapper;
 
@@ -76,9 +79,16 @@ public class UserService {
 
     private final Clock clock;
 
+    private final ApplicationEventPublisher eventPublisher;
+
     private final EntityManager entityManager;
 
     private final CacheManager cacheManager;
+
+    public User findById(UUID id) {
+        return userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+    }
 
     @Transactional
     @Caching(evict = {
@@ -342,6 +352,8 @@ public class UserService {
         User user,
         UsersResource usersResource,
         UserService userService) {
+
+        eventPublisher.publishEvent(new UserDeletedEvent(user.getId()));
 
         log.info("Deleting resources from Cloudinary...");
         deleteCloudinaryResources(user.getImageUrl());

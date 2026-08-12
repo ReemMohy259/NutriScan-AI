@@ -1,6 +1,6 @@
 package gov.iti.jets.NutriScan.listener;
 
-import gov.iti.jets.NutriScan.dto.ScanStatusChangedEvent;
+import gov.iti.jets.NutriScan.listener.event.ScanStatusChangedEvent;
 import gov.iti.jets.NutriScan.service.ScanNotificationService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;

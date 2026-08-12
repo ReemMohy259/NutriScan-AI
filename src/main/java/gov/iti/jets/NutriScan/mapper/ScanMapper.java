@@ -2,11 +2,13 @@ package gov.iti.jets.NutriScan.mapper;
 
 import gov.iti.jets.NutriScan.dto.ScanResultResponse;
 import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
+import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
 import gov.iti.jets.NutriScan.dto.ai.FlaggedIngredient;
 import gov.iti.jets.NutriScan.dto.ai.FoodSafetyResponse;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.model.Scan;
 import gov.iti.jets.NutriScan.model.ScanFlaggedIngredient;
+import gov.iti.jets.NutriScan.model.elasticsearch.ScanDocument;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -111,4 +113,34 @@ public interface ScanMapper {
             return ScanStatus.PROCESSING;
         }
     }
+
+    default ScanSummaryResponse toSummaryResponse(Scan scan) {
+        if (scan == null) {
+            return null;
+        }
+
+        Integer calories = null;
+        if (scan.getNutritionFact() != null) {
+            calories = scan.getNutritionFact().getCalories();
+        }
+
+        return new ScanSummaryResponse(
+            scan.getId(),
+            scan.getImageUrl(),
+            scan.getVerdict(),
+            scan.getScannedAt(),
+            scan.getProductName(),
+            calories,
+            scan.getStatus());
+    }
+
+    default String mapProductName(String name) {
+        return name == null ? "" : name;
+    }
+
+    @Mapping(source = "user.id", target = "userId")
+    @Mapping(source = "scannedAt", target = "scannedAt")
+    @Mapping(source = "status", target = "scanStatus")
+    @Mapping(source = "productName", target = "productName")
+    ScanDocument toDocument(Scan scan);
 }

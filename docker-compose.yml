@@ -1,26 +1,26 @@
 services:
 
   nutriscan:
-      container_name: nutriscan
-      build:
-        context: .
-        dockerfile: Dockerfile
-      env_file:
-        - .env
-      ports:
-        - "8080:8080"
-      environment:
-        DB_URL: jdbc:postgresql://postgres-app:5432/${APP_DB_NAME:-nutri_scan}
-        DB_USERNAME: ${APP_DB_USER:-admin}
-        DB_PASSWORD: ${APP_DB_PASSWORD:-admin}
-        SPRING_PROFILES_ACTIVE: ${SPRING_ACTIVE_PROFILES:-docker}
-      depends_on:
-        postgres-app:
-          condition: service_healthy
-        keycloak:
-          condition: service_healthy
-        redis:
-          condition: service_healthy
+    container_name: nutriscan
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-app:5432/${APP_DB_NAME:-nutri_scan}
+      DB_USERNAME: ${APP_DB_USER:-admin}
+      DB_PASSWORD: ${APP_DB_PASSWORD:-admin}
+      SPRING_PROFILES_ACTIVE: ${SPRING_ACTIVE_PROFILES:-docker}
+    depends_on:
+      postgres-app:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   postgres-app:
     container_name: postgres-app
@@ -34,7 +34,7 @@ services:
     volumes:
       - app-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d nutri_scan -U admin"]
+      test: [ "CMD-SHELL", "pg_isready -d nutri_scan -U admin" ]
       interval: 5s
       retries: 10
 
@@ -48,7 +48,7 @@ services:
     volumes:
       - kc-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      test: [ "CMD-SHELL", "pg_isready -U keycloak" ]
       interval: 5s
       retries: 10
 
@@ -96,6 +96,53 @@ services:
       timeout: 3s
       retries: 5
 
+  elasticsearch:
+    container_name: elasticsearch
+    image: elasticsearch:9.4.2
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.1.4
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   kc-pgdata:
   app-pgdata:
+  elasticsearch-data:
+  rabbitmq-data:
