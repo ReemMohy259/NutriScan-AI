@@ -8,17 +8,18 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-public record UpdateProfileRequest(@Size(max = 100) String firstName,
+public record UpdateProfileRequest(
+    @Size(max = 100) @Pattern(regexp = ".*\\p{L}.*", message = "First name must contain at least one letter") String firstName,
 
-    @Size(max = 100) String lastName,
+    @Size(max = 100) @Pattern(regexp = ".*\\p{L}.*", message = "Last name must contain at least one letter")  String lastName,
 
     @Past LocalDate dateOfBirth,
 
     Gender gender,
 
-    @DecimalMin(value = "0.0", inclusive = false) BigDecimal heightCm,
+    @DecimalMin(value = "0.0", inclusive = false) @DecimalMax(value = "300.0") BigDecimal heightCm,
 
-    @DecimalMin(value = "0.0", inclusive = false) BigDecimal weightKg,
+    @DecimalMin(value = "0.0", inclusive = false) @DecimalMax(value = "600.0") BigDecimal weightKg,
 
     List<@NotNull Integer> allergyIds,
 

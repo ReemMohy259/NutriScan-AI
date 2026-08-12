@@ -2,6 +2,7 @@ package gov.iti.jets.NutriScan.controller;
 
 import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class UserController {
     @PatchMapping("/profile")
     public CurrentUserProfileResponse updateUserProfile(
         @AuthenticationPrincipal Jwt jwt,
-        @RequestBody UpdateProfileRequest request) {
+        @RequestBody @Valid UpdateProfileRequest request) {
         userService.updateUserProfile(request, jwt);
 
         return userService.getCurrentUserProfile(jwt);
