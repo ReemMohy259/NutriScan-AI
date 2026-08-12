@@ -9,7 +9,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.UUID;
 
 public final class ScanSpecification {
@@ -46,10 +46,11 @@ public final class ScanSpecification {
             }
 
             if (date != null) {
+                ZoneId zone = ZoneId.of("Africa/Cairo");
 
-                Instant start = date.atStartOfDay(ZoneOffset.UTC).toInstant();
+                Instant start = date.atStartOfDay(zone).toInstant();
 
-                Instant end = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+                Instant end = date.plusDays(1).atStartOfDay(zone).toInstant();
 
                 predicate = cb.and(
                     predicate,

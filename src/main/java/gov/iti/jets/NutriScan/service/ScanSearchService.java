@@ -3,6 +3,7 @@ package gov.iti.jets.NutriScan.service;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.DeleteByQueryResponse;
 import gov.iti.jets.NutriScan.dto.ScanSearchResult;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
@@ -10,6 +11,7 @@ import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import gov.iti.jets.NutriScan.model.elasticsearch.ScanDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
@@ -22,6 +24,7 @@ import co.elastic.clients.json.JsonData;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -75,11 +78,13 @@ public class ScanSearchService {
             boolQuery.filter(f -> f.term(t -> t.field("scanStatus").value(scanStatus.name())));
         }
 
-        // Date filter (ignores time)
+        // Date filter
         if (date != null) {
+            ZoneId zone = ZoneId.of("Africa/Cairo");
 
-            Instant from = date.atStartOfDay(ZoneOffset.UTC).toInstant();
-            Instant to = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+            Instant from = date.atStartOfDay(zone).toInstant();
+
+            Instant to = date.plusDays(1).atStartOfDay(zone).toInstant();
 
             boolQuery.filter(
                 f -> f.range(
@@ -117,5 +122,47 @@ public class ScanSearchService {
                 "Failed to delete scan documents from Elasticsearch for user " + userId,
                 e);
         }
+    }
+
+    public List<String> getSuggestions(UUID userId, String query) {
+
+        if (!StringUtils.hasText(query) || query.trim().length() < 2) {
+            return List.of();
+        }
+
+        String normalized = query.trim();
+
+        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
+
+        // Only suggestions belonging to this user
+        boolQuery.filter(f -> f.term(t -> t.field("userId").value(userId.toString())));
+
+        // Autocomplete
+        boolQuery.must(
+            m -> m.multiMatch(
+                mm -> mm.query(normalized)
+                    .type(TextQueryType.BoolPrefix)
+                    .fields(
+                        "productName.suggest",
+                        "productName.suggest._2gram",
+                        "productName.suggest._3gram")));
+
+        NativeQuery nativeQuery = NativeQuery.builder()
+            .withQuery(q -> q.bool(boolQuery.build()))
+            .withPageable(PageRequest.of(0, 10))
+            .withSourceFilter(FetchSourceFilter.of(f -> f.withIncludes("productName")))
+            .withSort(sort -> sort.score(s -> s.order(SortOrder.Desc)))
+            .build();
+
+        SearchHits<ScanDocument> hits = elasticsearchOperations
+            .search(nativeQuery, ScanDocument.class);
+
+        return hits.getSearchHits()
+            .stream()
+            .map(hit -> hit.getContent().getProductName())
+            .filter(StringUtils::hasText)
+            .distinct()
+            .limit(10)
+            .toList();
     }
 }

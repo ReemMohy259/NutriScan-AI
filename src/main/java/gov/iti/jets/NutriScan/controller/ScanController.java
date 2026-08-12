@@ -4,6 +4,7 @@ import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
+import gov.iti.jets.NutriScan.service.ScanSearchService;
 import gov.iti.jets.NutriScan.service.ScanService;
 import gov.iti.jets.NutriScan.util.ImageValidationUtils;
 import jakarta.validation.Valid;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -32,6 +34,7 @@ import java.util.UUID;
 public class ScanController {
 
     private final ScanService scanService;
+    private final ScanSearchService scanSearchService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -126,5 +129,15 @@ public class ScanController {
     public void deleteScan(@AuthenticationPrincipal Jwt jwt, @PathVariable String scanId) {
 
         scanService.deleteScan(jwt, scanId);
+    }
+
+    @GetMapping("/suggestions")
+    public List<String> getScanSuggestions(
+        @AuthenticationPrincipal Jwt jwt,
+        @RequestParam String query) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        return scanSearchService.getSuggestions(userId, query);
     }
 }

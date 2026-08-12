@@ -25,6 +25,7 @@ public class ScanDocument {
     private UUID userId;
 
     @MultiField(mainField = @Field(type = FieldType.Text, analyzer = "standard"), otherFields = {
+            @InnerField(suffix = "suggest", type = FieldType.Search_As_You_Type),
             @InnerField(suffix = "keyword", type = FieldType.Keyword)})
     private String productName;
 

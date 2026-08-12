@@ -51,7 +51,7 @@ public class User {
     private Set<UserDisease> userDiseases = new HashSet<>();
 
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-//    @Fetch(FetchMode.SUBSELECT)
+    // @Fetch(FetchMode.SUBSELECT)
     private Set<FamilyMember> familyMembers = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

@@ -25,6 +25,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
@@ -422,28 +423,28 @@ public class ScanService {
             return scanRepository.findSummaryByUserId(userId, sorted);
         }
 
-        // Search Elasticsearch
-        ScanSearchResult searchResult = scanSearchService.search(
-            userId,
-            request.query(),
-            request.verdict(),
-            request.scanStatus(),
-            request.date(),
-            pageable);
+        ScanSearchResult searchResult;
 
-        // Eventual consistency fallback
-        if (searchResult.totalElements() == 0) {
-
-            Specification<Scan> specification = ScanSpecification.search(
+        try {
+            // Elasticsearch
+            searchResult = scanSearchService.search(
                 userId,
                 request.query(),
                 request.verdict(),
                 request.scanStatus(),
-                request.date());
+                request.date(),
+                pageable);
 
-            Page<Scan> scans = scanRepository.findAll(specification, pageable);
+        } catch (DataAccessResourceFailureException e) {
 
-            return scans.map(scanMapper::toSummaryResponse);
+            log.warn("Elasticsearch is unavailable. " + "Falling back to PostgreSQL.", e);
+
+            return searchUsingSpecification(userId, request, pageable);
+        }
+
+        // Elasticsearch is available, but may not contain the newly-created scan yet.
+        if (searchResult.totalElements() == 0) {
+            return searchUsingSpecification(userId, request, pageable);
         }
 
         List<UUID> ids = searchResult.ids();
@@ -453,12 +454,30 @@ public class ScanService {
         Map<UUID, ScanSummaryResponse> map = summaries.stream()
             .collect(Collectors.toMap(ScanSummaryResponse::scanId, Function.identity()));
 
+        // Preserve Elasticsearch ordering
         List<ScanSummaryResponse> ordered = ids.stream()
             .map(map::get)
             .filter(Objects::nonNull)
             .toList();
 
         return new PageImpl<>(ordered, pageable, searchResult.totalElements());
+    }
+
+    private Page<ScanSummaryResponse> searchUsingSpecification(
+        UUID userId,
+        ScanSearchRequest request,
+        Pageable pageable) {
+
+        Specification<Scan> specification = ScanSpecification.search(
+            userId,
+            request.query(),
+            request.verdict(),
+            request.scanStatus(),
+            request.date());
+
+        Page<Scan> scans = scanRepository.findAll(specification, pageable);
+
+        return scans.map(scanMapper::toSummaryResponse);
     }
 
     // Careful for N+1 queries
