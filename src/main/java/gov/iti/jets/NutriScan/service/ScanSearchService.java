@@ -19,13 +19,11 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.FetchSourceFilter;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import co.elastic.clients.json.JsonData;
-
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,7 +57,7 @@ public class ScanSearchService {
 
                 match.field("productName");
                 match.query(normalized);
-
+                match.operator(Operator.And);
                 if (normalized.length() >= 3) {
                     match.fuzziness("AUTO");
                 }
