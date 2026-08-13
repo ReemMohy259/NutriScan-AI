@@ -134,7 +134,7 @@ public class ScanController {
     @GetMapping("/suggestions")
     public List<String> getScanSuggestions(
         @AuthenticationPrincipal Jwt jwt,
-        @RequestParam String query) {
+        @RequestParam(required = false) String query) {
 
         UUID userId = UUID.fromString(jwt.getSubject());
 
