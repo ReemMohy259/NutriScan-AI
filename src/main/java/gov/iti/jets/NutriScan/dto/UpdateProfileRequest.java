@@ -11,7 +11,7 @@ import java.util.List;
 public record UpdateProfileRequest(
     @Size(max = 100) @Pattern(regexp = ".*\\p{L}.*", message = "First name must contain at least one letter") String firstName,
 
-    @Size(max = 100) @Pattern(regexp = ".*\\p{L}.*", message = "Last name must contain at least one letter")  String lastName,
+    @Size(max = 100) @Pattern(regexp = ".*\\p{L}.*", message = "Last name must contain at least one letter") String lastName,
 
     @Past LocalDate dateOfBirth,
 

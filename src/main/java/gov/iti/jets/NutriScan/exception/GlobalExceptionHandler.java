@@ -342,38 +342,31 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiErrorResponse> handleTypeMismatchExceptions(
-            MethodArgumentTypeMismatchException ex,
-            HttpServletRequest request) {
+        MethodArgumentTypeMismatchException ex,
+        HttpServletRequest request) {
 
         String issue = "Invalid value: " + ex.getValue();
 
         if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
             String allowedValues = Arrays.stream(ex.getRequiredType().getEnumConstants())
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", "));
+                .map(Object::toString)
+                .collect(Collectors.joining(", "));
 
-            issue = String.format(
-                    "Invalid value '%s'. Allowed values: %s",
-                    ex.getValue(),
-                    allowedValues
-            );
+            issue = String
+                .format("Invalid value '%s'. Allowed values: %s", ex.getValue(), allowedValues);
         }
 
-        List<ApiErrorResponse.ErrorDetail> details = List.of(
-                ApiErrorResponse.ErrorDetail.builder()
-                        .field(ex.getName())
-                        .issue(issue)
-                        .build()
-        );
+        List<ApiErrorResponse.ErrorDetail> details = List
+            .of(ApiErrorResponse.ErrorDetail.builder().field(ex.getName()).issue(issue).build());
 
         ApiErrorResponse response = ApiErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error("VALIDATION_ERROR")
-                .message("Invalid request parameter")
-                .details(details)
-                .path(request.getRequestURL().toString())
-                .build();
+            .timestamp(Instant.now())
+            .status(HttpStatus.BAD_REQUEST.value())
+            .error("VALIDATION_ERROR")
+            .message("Invalid request parameter")
+            .details(details)
+            .path(request.getRequestURL().toString())
+            .build();
 
         return ResponseEntity.badRequest().body(response);
     }
