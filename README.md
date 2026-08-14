@@ -29,15 +29,16 @@
 - [Search & Observability (Elasticsearch + Kibana)](#search--observability-elasticsearch--kibana)
 - [Authentication & Authorization (Keycloak)](#authentication--authorization-keycloak)
 - [API Reference](#api-reference)
+- [Design Patterns](#design-patterns)
 - [Run the Application](#run-the-application)
 - [Deployment (Railway)](#deployment-railway)
 - [CI/CD Pipeline (GitHub Actions)](#cicd-pipeline-github-actions)
-- [Testing & Code Coverage](#testing--code-coverage)
+- [UI State & Mobile Applications](#ui-state--mobile-applications)
 - [Team Members](#team-members)
 
 ---
 
-## Overview
+## 🧭 Overview
 
 **NutriScan** lets users discover exactly what is in the food they eat and whether it is safe *for them specifically*.
 
@@ -57,7 +58,7 @@ Beyond scanning, NutriScan tracks **daily meals & nutrition**, manages **family 
 
 ---
 
-## Features
+## ✨ Features
 
 - 🔍 **Image scanning (OCR)** — snap a product label, get its ingredients extracted by a Gemini vision model.
 - 🏷️ **Barcode scanning** — resolve a barcode against the **OpenFoodFacts** dataset.
@@ -75,7 +76,7 @@ Beyond scanning, NutriScan tracks **daily meals & nutrition**, manages **family 
 
 ---
 
-## AI Food-Safety Pipeline
+## 🤖 AI Food-Safety Pipeline
 
 We designed the food-safety analysis around an agentic pipeline rather than a fixed linear chain — the judge model can autonomously decide when the extracted data is insufficient and trigger a Tavily web search to fill the gaps before rendering a verdict. This gives the system the flexibility to self-correct and gather more context instead of failing or guessing on incomplete label scans.
 
@@ -119,7 +120,7 @@ flowchart TD
 
 ---
 
-## System Architecture
+## 🏗️ System Architecture
 
 ```mermaid
 flowchart TD
@@ -159,7 +160,7 @@ flowchart TD
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
 ```
 NutriScan-AI/
@@ -211,7 +212,7 @@ NutriScan-AI/
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 ### Backend
 
@@ -264,7 +265,7 @@ NutriScan-AI/
 
 ---
 
-## Event-Driven Programming (RabbitMQ)
+## 📬 Event-Driven Programming (RabbitMQ)
 
 NutriScan decouples expensive/cross-cutting work from request handling using RabbitMQ, with **publisher-confirms** and **mandatory returns** for reliable delivery.
 
@@ -305,7 +306,7 @@ flowchart TD
 
 ---
 
-## Caching (Redis + Spring Cache)
+## ⚡ Caching (Redis + Spring Cache)
 
 NutriScan uses **Redis 7** as the Spring Cache backend. Expensive work — LLM inference, external API calls, and frequently read reference data — is memoized with `@Cacheable` so repeat requests resolve instantly and never hammer upstream systems. Each cache has its own TTL, configured in `RedisCacheConfig` (the default TTL is 15 days).
 
@@ -330,7 +331,7 @@ Why it matters:
 
 ---
 
-## Search & Observability (Elasticsearch + Kibana)
+## 🔎 Search & Observability (Elasticsearch + Kibana)
 
 ### Elasticsearch search
 - Full-text search across scans with filters on **verdict, scan status, and date**.
@@ -377,22 +378,11 @@ flowchart TD
 
 ---
 
-## Authentication & Authorization (Keycloak)
+## 🔐 Authentication & Authorization (Keycloak)
 
 NutriScan uses **Keycloak 26.6** as its identity provider, deployed as a **custom image** on `https://auth.nutriscan.dev`.
 
-```text
-Client ──login──▶ Keycloak ──JWT──▶ Spring Boot Resource Server
-                                        │
-                                  validates JWT via
-                                  Keycloak JWK set
-                                        │
-                                  extracts roles
-                                        │
-                                  provisions local user
-                                        │
-                                  authorizes endpoints
-```
+![authentication.png](images/authentication.png)
 
 ### Customization
 - **Custom email-HTTP SPI** — a bespoke `EmailSenderProvider` that sends verification and password-reset emails through the **Resend HTTP API** instead of Keycloak's SMTP provider.
@@ -404,7 +394,7 @@ During Spring Boot startup, the app calls the **Keycloak Admin Client** (`keyclo
 
 ---
 
-## API Reference
+## 📖 API Reference
 
 Interactive docs are available at `/swagger-ui.html` when the app is running (`/v3/api-docs` for the OpenAPI spec).
 
@@ -475,7 +465,7 @@ All scan/health data endpoints are secured with **OAuth2 / JWT** and role-based 
 
 ---
 
-## Deployment (Railway)
+## 🚀 Deployment (Railway)
 
 NutriScan is deployed on **Railway** using separate services for the application and its supporting infrastructure.
 
@@ -519,7 +509,7 @@ Production configuration is provided through Railway environment variables. Sens
 
 ---
 
-## CI/CD Pipeline (GitHub Actions)
+## 🔄 CI/CD Pipeline (GitHub Actions)
 
 Continuous integration runs via **`.github/workflows/ci.yml`** and is triggered on **push to any branch** and **pull requests to `main` / `develop`**. The pipeline contains **two jobs**:
 
@@ -538,7 +528,33 @@ jobs:
 ```
 ---
 
-## Run the Application
+## 🧩 Design Patterns
+
+NutriScan applies a set of established design patterns to keep the codebase layered, decoupled, testable, and resilient:
+
+| Pattern | Where it's applied | Purpose |
+|---------|--------------------|---------|
+| **Layered Architecture** | `controller` → `service` → `repository` split | Separates HTTP, business logic, and persistence concerns |
+| **DTO + Mapper** | `dto/` + `mapper/` (MapStruct) | Decouples API contracts from domain entities |
+| **Repository** | Spring Data JPA `repository/` | Hides data-access details behind domain-oriented interfaces |
+| **Specification / Criteria** | `ScanSpecification` + JPA Criteria | Dynamic, type-safe query building for search & filters |
+| **Controller Adapter** | `controller/` | Translates HTTP requests into service calls and DTO responses |
+| **Factory** | `AiConfig` (`BedrockGatewayStructuredChatClient`, ...) | Creates the right AI provider / client instances |
+| **Strategy (Pluggable AI)** | `StructuredChatClient` + implementations | Swaps between Gemini / Bedrock / OpenAI-compatible chats |
+| **Observer / Event-Driven** | `event/` + `listener/` (RabbitMQ) | Decouples side-effects (indexing, deletion) from request flow |
+| **Template Method** | `ai/` JSON-schema driven prompts (`Prompts`) | Shares a fixed analysis flow while varying provider details |
+| **Command / Scheduler** | `scheduler/` (reconciliation, account deletion) | Encapsulates scheduled jobs as dedicated components |
+| **Strategy (Cache keys)** | `util/CacheKeys` | Centralizes cache-key generation for stable `@Cacheable` lookups |
+| **Global Exception Handling** | `exception/GlobalExceptionHandler` | Centralizes error mapping to consistent API responses |
+| **Facade (Orchestration)** | `AiService` orchestrating OCR, barcode, judge, Tavily | Simplifies a complex AI pipeline into one entry point |
+| **Value Object** | `model/` (`ScanStatus`, `Verdict`, `Gender`, ...) | Encapsulates small, well-typed concepts |
+| **Builder (Lombok)** | throughout the model/DTO layer | Reduces boilerplate for immutable object construction |
+
+> **Note on Event-Driven & Layered** — the combination of a **Layered Architecture** with an **Event-Driven** backbone via RabbitMQ (`@TransactionalEventListener` + DLX/DLQ) is what makes the platform scalable and resilient to partial infrastructure failures.
+
+---
+
+## ▶️ Run the Application
 
 ### Prerequisites
 
@@ -602,7 +618,26 @@ This starts **PostgreSQL (app + Keycloak), Keycloak, Redis, Elasticsearch, Kiban
 
 ---
 
+## 📱 UI State & Mobile Applications
+
+This REST API is backend-ready and designed to be consumed by **mobile applications**. Another team builds the mobile clients on top of this backend, sharing the same endpoints, DTO contracts, security flow (Keycloak OAuth2), WebSocket notifications, and feature set described throughout this document.
+
+### Mobile clients
+
+| Platform | Language | Repository                                                     |
+|----------|----------|----------------------------------------------------------------|
+| **iOS** | Swift | [`NutriScan-iOS`](https://github.com/OTech-Company/NutriScan)  |
+| **Android** | Kotlin | [`NutriScan-Android`](https://github.com/yusefellban/NutriScan) |
+
+Both apps authenticate through the same Keycloak realm, call the same `/api/v1` endpoints, and consume the identification/role model exactly as described in **Authentication & Authorization**.
+
+---
+
 ## 👥 Team Members
 - **Ibrahim Gad**
 - **Ibrahim Soliman**
 - **Reem Mohy**
+
+---
+
+Thank you for exploring **NutriScan — Stay Safe** ✨
