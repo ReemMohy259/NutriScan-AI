@@ -77,6 +77,8 @@ Beyond scanning, NutriScan tracks **daily meals & nutrition**, manages **family 
 
 ## AI Food-Safety Pipeline
 
+We designed the food-safety analysis around an agentic pipeline rather than a fixed linear chain — the judge model can autonomously decide when the extracted data is insufficient and trigger a Tavily web search to fill the gaps before rendering a verdict. This gives the system the flexibility to self-correct and gather more context instead of failing or guessing on incomplete label scans.
+
 ```mermaid
 flowchart TD
     A[User Action] --> B[Snap a Photo]
@@ -85,64 +87,66 @@ flowchart TD
     B --> D[Gemini OCR<br/>Vision Model]
     C --> E[OpenFoodFacts<br/>Barcode Lookup]
 
-    D --> F[Extracted Ingredients]
+    D -->|Irrelevant Image| DF[Scan Failed]
+    D -->|Success: Ingredients + Nutrition<br/>+ Product Name if available| F[Extracted Product Data]
     E --> F
 
-    F --> G["Gemini 'Judge'<br/>Combines ingredients with user's<br/>allergies + medical conditions"]
+    F --> G["Gemini 'Judge'<br/>Combines product data with user's<br/>allergies + medical conditions"]
+
+    G -->|Insufficient data extracted| S[Tavily Tool Call<br/>Web Search for Product Info]
+    S --> G
+
     G --> H[Personalized Verdict<br/>SAFE / CAUTION / UNSAFE]
-
-    H --> I[Nutrition Enrichment<br/>Gemini Search + Tavily + OpenFoodFacts]
-
-    I --> J[Safety Verdict]
-    I --> K[Nutrition Facts]
-    I --> L[Flagged Ingredients]
 ```
 
 ### How it works
-1. **OCR / barcode extraction** — a dedicated **Gemini** model reads the label image, or the barcode is matched via OpenFoodFacts.
-2. **Safety judgment** — a **Gemini "judge"** prompt injects the user's allergies & conditions and returns a **structured JSON** answer (via JSON-schema prompting).
-3. **Search enrichment** — a **Gemini "search"** model + **Tavily** tool fetch trustworthy nutrition facts.
-4. **Caching** — every AI result is cached in **Redis**, keyed by ingredients/barcode + allergies + conditions.
-5. **Result storage** — scores, verdicts and flagged ingredients are persisted and indexed into Elasticsearch.
+1. **Image capture** — the user submits a product photo or scans a barcode.
+2. **OCR extraction** — for photos, a dedicated **Gemini** vision model reads the label. If the image is irrelevant (not a food label), the scan fails immediately. Otherwise, it extracts the ingredients, nutrition facts, and product name (when legible).
+3. **Barcode path** — for barcodes, **OpenFoodFacts** is used instead of OCR to retrieve product data directly.
+4. **Safety judgment** — a **Gemini "judge"** prompt combines the extracted product data with the user's allergies and medical conditions.
+5. **Search fallback** — if the OCR output doesn't give the judge enough detail to make a confident call, the judge invokes the **Tavily** tool to search the web for additional product data before finalizing its decision.
+6. **Verdict** — the judge returns a structured **SAFE / CAUTION / UNSAFE** verdict personalized to the user's health profile.
 
 ### AI providers used
-| Provider | Role | Model |
-|----------|------|-------|
-| **Google Gemini** (Spring AI) | OCR / search / judge | Gemini Flash (vision + text) |
-| **AWS Bedrock** (Spring AI) | Alternative structured chat | Claude (Sonnet) |
-| **OpenAI-compatible** | Alternative chat client | via opencode.ai |
-| **Tavily** (tool) | Web search for nutrition facts | API |
-| **OpenFoodFacts** | Global food-product dataset | REST API |
+
+| Provider                      | Role                                                      | Model / Service |
+| ----------------------------- | --------------------------------------------------------- | --------------- |
+| **Google Gemini** (Spring AI) | OCR / Vision, safety judge, search fallback               | Gemini Flash    |
+| **AWS Bedrock** (Spring AI)   | Alternative structured chat                               | Claude (Sonnet) |
+| **OpenAI-compatible**         | Alternative chat client                                   | via opencode.ai |
+| **Tavily** (tool)             | Web search fallback when product image data is incomplete | API             |
+| **OpenFoodFacts**             | Barcode-based product information lookup                  | REST API        |
 
 ---
 
 ## System Architecture
 
-```
-      ┌────────────────┐     ┌────────────────────────────────────────────────────────────┐
-      │   Clients      │     │                 Spring Boot API (:8080)                    │
-      │  (Web / Mobile)│────▶│                                                            │
-      └────────────────┘     │  ┌───────────┐ ┌─────────┐ ┌────────────┐ ┌──────────────┐ │
-                             │  │Controllers│ │Services │ │Repositories│ │  WebSocket   │ │
-                             │  └─────┬─────┘ └────┬────┘ └─────┬──────┘ └──────────────┘ │
-                             │        │            │            │                         │
-                             │   ┌────▼────────────▼────────────▼───────────────────────┐ │
-                             │   │                AI Orchestration                      │ │
-                             │   │  Gemini(OCR/Search/Judge)  +  Tavily  +  Bedrock     │ │
-                             │   └──────────────────────────────────────────────────────┘ │
-                             └──────┬───────────────┬───────────────┬───────────────┬─────┘
-                                    │               │               │               │
-                        ┌───────────▼───┐   ┌───────▼────────┐  ┌───▼──────────┐  ┌─▼──────────────┐
-                        │  PostgreSQL   │   │  Elasticsearch │  │   Redis      │  │    RabbitMQ    │
-                        │   (app + KC)  │   │   + Kibana     │  │  (cache)     │  │   (event bus)  │
-                        └───────────────┘   └────────────────┘  └──────────────┘  └────────────────┘
-                                    │                                                      
-                                    ▼
-                         ┌──────────────────┐
-                         │  Keycloak 26.6   │  ← custom email-HTTP SPI + branded theme
-                         │  (auth.nutriscan │
-                         │       .dev)      │
-                         └──────────────────┘
+```mermaid
+flowchart TD
+    Clients["Clients<br/>(Web / Mobile)"] --> API
+
+    subgraph API["Spring Boot API (:8080)"]
+        direction TB
+        Controllers[Controllers]
+        Services[Services]
+        Repositories[Repositories]
+        WebSocket["WebSocket"]
+
+        Controllers --> Orchestration
+        Services --> Orchestration
+        Repositories --> Orchestration
+
+        subgraph Orchestration["AI Orchestration"]
+            AIDesc["Gemini (OCR / Search / Judge)<br/>+ Tavily + Bedrock"]
+        end
+    end
+
+    API --> Postgres[("PostgreSQL<br/>(app + KC)")]
+    API --> Elastic[("Elasticsearch<br/>+ Kibana")]
+    API --> Redis[("Redis<br/>(cache)")]
+    API --> RabbitMQ[("RabbitMQ<br/>(event bus)")]
+
+    Postgres --> Keycloak["Keycloak 26.6<br/>(auth.nutriscan.dev)<br/>custom email-HTTP SPI<br/>+ branded theme"]
 ```
 
 **Key architectural principles**
@@ -264,19 +268,25 @@ NutriScan-AI/
 
 NutriScan decouples expensive/cross-cutting work from request handling using RabbitMQ, with **publisher-confirms** and **mandatory returns** for reliable delivery.
 
-```
-                    ┌────────────────────────────┐
-                    │     scan.exchange (topic)  │
-                    └──────┬──────┬──────┬───────┘
-                           │      │      │
-              ┌────────────▼─┐ ┌──▼───────▼────┐ ┌─────────▼──────────┐
-              │ scan.index   │ │ scan.delete   │ │   user.delete      │
-              │  queue       │ │  queue        │ │   queue            │
-              └──────┬───────┘ └──────┬────────┘ └──────┬────────────┘
-                     │                │                 │
-              ┌──────▼────────┐ ┌──────▼────────┐ ┌──────▼────────────┐
-              │scan.index.dlq │ │scan.delete.dlq│ │ user.delete.dlq   │
-              └───────────────┘ └───────────────┘ └───────────────────┘
+```mermaid
+flowchart TD
+    MainExchange["scan.exchange<br/>(topic)"]
+    DLXExchange["scan.dlx<br/>(topic - dead letter)"]
+
+    MainExchange -->|scan.index| IndexQueue["scan.index.queue"]
+    MainExchange -->|scan.index.retry| IndexRetryQueue["scan.index.retry.queue"]
+    MainExchange -->|scan.delete| DeleteQueue["scan.delete.queue"]
+    MainExchange -->|user.delete| UserDeleteQueue["user.delete.queue"]
+
+    IndexQueue -.dead-letter.-> DLXExchange
+    DeleteQueue -.dead-letter.-> DLXExchange
+    UserDeleteQueue -.dead-letter.-> DLXExchange
+
+    DLXExchange -->|scan.index| IndexDLQ["scan.index.dlq"]
+    DLXExchange -->|scan.delete| DeleteDLQ["scan.delete.dlq"]
+    DLXExchange -->|user.delete| UserDeleteDLQ["user.delete.dlq"]
+
+    IndexRetryQueue -.requeue after delay.-> MainExchange
 ```
 
 ### Queue topology
@@ -332,60 +342,34 @@ Why it matters:
 
 #### Search flow: Elasticsearch + RabbitMQ + PostgreSQL fallback
 
-```
-                ┌──────────────────────────────┐
-                │   Scan created / updated /   │
-                │   deleted                    │
-                └──────────────┬───────────────┘
-                               │ @TransactionalEventListener
-                               │ (only after DB COMMIT succeeds)
-                               ▼
-                      ┌────────────────┐
-                      │  ScanEventPublisher │
-                      └───────┬────────┘
-                              │ publish
-                              ▼
-                    ┌───────────────────────────┐
-                    │ RabbitMQ  scan.exchange    │
-                    └───────────┬───────────────┘
-                                │ routing key
-                 ┌──────────────┴───────────────┐
-                 │                              │
-      ┌──────────▼─────────┐        ┌───────────▼──────────┐
-      │ scan.index.queue   │        │  scan.delete.queue   │
-      │ (or retry queue)   │        └───────────┬──────────┘
-      └──────────┬─────────┘                    │ delete doc
-                 │ index/update doc             ▼
-                 │                     ┌────────────────┐
-                 │                     │  Elasticsearch  │
-                 │                     │  scan index     │
-                 │                     └───────┬────────┘
-                 ▼                             │
-          ┌──────────────┐                     │
-          │  Elasticsearch│◀───────────────────┘  store
-          │  (scans index)│
-          └──────────────┘
+```mermaid
+flowchart TD
+    subgraph Indexing["Event-Driven Indexing"]
+        direction TB
+        Event["Scan created / updated / deleted"]
+        Event -->|"@TransactionalEventListener<br/>(only after DB COMMIT succeeds)"| Publisher[ScanEventPublisher]
+        Publisher -->|publish| Exchange["RabbitMQ<br/>scan.exchange"]
 
-   USER SEARCH REQUEST (query / verdict / status / date)
-                          │
-                          ▼
-              ┌────────────────────┐
-              │  any filters?      │──No──▶ PostgreSQL only (Specification)
-              └─────────┬──────────┘
-                        │ Yes
-                        ▼
-                 ┌───────────────┐   success (hits > 0)
-                 │  ScanSearchService   │──────────────▶ fetch scan details from
-                 │  query Elasticsearch │                 PostgreSQL by IDs,
-                 │  (fuzzy match)      │                 preserve ES ordering
-                 └───────┬───────────┘
-                         │ Elasticsearch down
-                         │ OR returns 0 results
-                         ▼
-            ┌─────────────────────────────┐
-            │  FALLBACK → PostgreSQL       │
-            │  searchUsingSpecification()  │  (JPA Criteria + Specification)
-            └─────────────────────────────┘
+        Exchange -->|routing key| IndexQueue["scan.index.queue<br/>(or retry queue)"]
+        Exchange -->|routing key| DeleteQueue["scan.delete.queue"]
+
+        IndexQueue -->|index/update doc| ES[("Elasticsearch<br/>scans index")]
+        DeleteQueue -->|delete doc| ES
+    end
+
+    subgraph Search["User Search Flow"]
+        direction TB
+        Request["User Search Request<br/>(query / verdict / status / date)"]
+        Request --> HasFilters{Any filters?}
+
+        HasFilters -->|No| PGOnly["PostgreSQL only<br/>(Specification)"]
+
+        HasFilters -->|Yes| SearchService["ScanSearchService<br/>query Elasticsearch<br/>(fuzzy match)"]
+
+        SearchService -->|"success (hits > 0)"| FetchDetails["Fetch scan details from<br/>PostgreSQL by IDs,<br/>preserve ES ordering"]
+
+        SearchService -->|"Elasticsearch down<br/>OR returns 0 results"| Fallback["FALLBACK → PostgreSQL<br/>searchUsingSpecification()<br/>(JPA Criteria + Specification)"]
+    end
 ```
 
 ### Kibana
@@ -491,6 +475,69 @@ All scan/health data endpoints are secured with **OAuth2 / JWT** and role-based 
 
 ---
 
+## Deployment (Railway)
+
+NutriScan is deployed on **Railway** using separate services for the application and its supporting infrastructure.
+
+### Production Services
+
+| Service                   | URL                            | Purpose                                        |
+|---------------------------| ------------------------------ | ---------------------------------------------- |
+| **NutriScan Application** | **https://nutriscan.dev**      | Production REST API                            |
+| **Keycloak**              | **https://auth.nutriscan.dev** | OAuth2 / OIDC authentication and authorization |
+| **Swagger UI**            | **https://nutriscan.dev/swagger-ui/index.html** | The production REST API is documented using Swagger / OpenAPI |
+
+The application uses the `nutriscan` Keycloak realm, with JWT validation configured against:
+
+```text
+https://auth.nutriscan.dev/realms/nutriscan
+```
+
+### Infrastructure
+
+Railway hosts the following managed services:
+
+* **PostgreSQL** — application and Keycloak persistence
+* **Redis** — caching and temporary data
+* **RabbitMQ** — asynchronous messaging
+* **Elasticsearch** — search and indexing
+* **Kibana** — Elasticsearch management and visualization
+* **RabbitMQ Web UI** — messaging administration
+
+Persistent volumes are used for stateful services to preserve data across deployments and restarts.
+
+### Email
+
+Transactional emails, including **account verification** and **password reset**, are delivered through **Resend**.
+
+### Configuration & Security
+
+Production configuration is provided through Railway environment variables. Sensitive credentials and secrets are not stored in the repository.
+
+### Railway deployment Architecture
+![deployment.png](images/deployment.png)
+
+---
+
+## CI/CD Pipeline (GitHub Actions)
+
+Continuous integration runs via **`.github/workflows/ci.yml`** and is triggered on **push to any branch** and **pull requests to `main` / `develop`**. The pipeline contains **two jobs**:
+
+| Job | Runs on | Steps |
+|-----|---------|-------|
+| **lint** | `ubuntu-latest` | `actions/checkout` → `setup-java` (Temurin 21, Maven cache) → `mvn spotless:check` (formatting validation) |
+| **build** | `ubuntu-latest` (`needs: lint`) | `actions/checkout` → `setup-java` (Temurin 21, Maven cache) → `mvn clean package -DskipTests` |
+
+The build job only runs **after** the lint job passes, ensuring only well-formatted, compiling code reaches later stages.
+
+```yaml
+# .github/workflows/ci.yml — summary
+jobs:
+  lint:   # Spotless formatting check
+  build:  # mvn clean package (depends on lint)
+```
+---
+
 ## Run the Application
 
 ### Prerequisites
@@ -535,7 +582,7 @@ RABBITMQ_PASSWORD=guest
 ### Step 2 — Start the infrastructure + app with Docker Compose
 
 ```bash
-docker compose up -d --build
+docker compose up --build
 ```
 
 This starts **PostgreSQL (app + Keycloak), Keycloak, Redis, Elasticsearch, Kibana, RabbitMQ**, and the **NutriScan** application itself — all with healthchecks and auto-restart.
@@ -555,62 +602,7 @@ This starts **PostgreSQL (app + Keycloak), Keycloak, Redis, Elasticsearch, Kiban
 
 ---
 
-## Deployment (Railway)
-
-NutriScan and its Keycloak IAM are deployed on **Railway**, each with a **custom DNS** record.
-
-| Service | URL | Type |
-|---------|-----|------|
-| NutriScan application | **https://nutriscan.dev** | REST API (production profile) |
-| Keycloak identity provider | **https://auth.nutriscan.dev** | OAuth2 / OIDC + custom SPI |
-
-- **Production profile** (`application-production.properties`) points the JWT/issuer and JWK-set to `https://auth.nutriscan.dev/realms/nutriscan`.
-- **Emailing** is handled through **Resend** (SMTP/HTTP) so transactional emails (verification, password reset) are delivered reliably.
-- Managed infrastructure on Railway: PostgreSQL, Redis, Elasticsearch, RabbitMQ, and the app container.
-
-> **Railway deployment**
->
-> ⤵️ _Add your Railway deployment screenshot here._
->
-> ```text
-> [ SCREENSHOT: NutriScan Railway project / services dashboard ]
-> ```
-
----
-
-## CI/CD Pipeline (GitHub Actions)
-
-Continuous integration runs via **`.github/workflows/ci.yml`** and is triggered on **push to any branch** and **pull requests to `main` / `develop`**. The pipeline contains **two jobs**:
-
-| Job | Runs on | Steps |
-|-----|---------|-------|
-| **lint** | `ubuntu-latest` | `actions/checkout` → `setup-java` (Temurin 21, Maven cache) → `mvn spotless:check` (formatting validation) |
-| **build** | `ubuntu-latest` (`needs: lint`) | `actions/checkout` → `setup-java` (Temurin 21, Maven cache) → `mvn clean package -DskipTests` |
-
-The build job only runs **after** the lint job passes, ensuring only well-formatted, compiling code reaches later stages.
-
-```yaml
-# .github/workflows/ci.yml — summary
-jobs:
-  lint:   # Spotless formatting check
-  build:  # mvn clean package (depends on lint)
-```
-
----
-
-## Testing & Code Coverage
-
-- Backend tests use **Spring Boot Test, JUnit 5, and Mockito**.
-- Test-scoped starters include `data-jpa-test`, `validation-test`, `webmvc-test`, and `spring-rabbit-test`.
-- Base application context test: `src/test/java/gov/iti/jets/NutriScan/NutriScanApplicationTests.java`.
-- The CI `build` job compiles and runs tests during `mvn clean package`.
-
----
-
-## Team Members
-
-| Name | Role |
-|------|------|
-| _— add team member —_ | Backend |
-| _— add team member —_ | AI / Data |
-| _— add team member —_ | DevOps |
+## 👥 Team Members
+- **Ibrahim Gad**
+- **Ibrahim Soliman**
+- **Reem Mohy**
