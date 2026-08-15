@@ -102,7 +102,7 @@ public class ScanService {
 
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        Scan scan = scanRepository.findById(scanId)
+        Scan scan = scanRepository.findByIdWithDetails(scanId, userId)
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
 
         try {
@@ -233,7 +233,7 @@ public class ScanService {
 
         log.info("Starting barcode scan processing for scanId: {}, barcode: {}", scanId, barcode);
 
-        Scan scan = scanRepository.findById(scanId)
+        Scan scan = scanRepository.findByIdWithDetails(scanId, userId)
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
 
         try {

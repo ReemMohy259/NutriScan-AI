@@ -24,6 +24,7 @@ public interface ScanRepository extends JpaRepository<Scan, UUID>, JpaSpecificat
             from Scan s
             left join fetch s.nutritionFact
             left join fetch s.scanFlaggedIngredients
+            left join fetch s.familyAlerts
             where s.id = :id and s.user.id = :userId
         """)
     Optional<Scan> findByIdWithDetails(UUID id, UUID userId);
