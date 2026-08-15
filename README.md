@@ -24,6 +24,7 @@
 - [AI Food-Safety Pipeline](#ai-food-safety-pipeline)
 - [System Architecture](#system-architecture)
 - [Project Structure](#project-structure)
+- [Database Schema](#database-schema)
 - [Technology Stack](#technology-stack)
 - [Event-Driven Programming (RabbitMQ)](#event-driven-programming-rabbitmq)
 - [Caching (Redis + Spring Cache)](#caching-redis--spring-cache)
@@ -226,6 +227,20 @@ NutriScan-AI/
        └── db/migration/                       # Flyway migrations
     
 ```
+
+---
+
+## 🗄️ Database Schema
+
+The application schema is managed and versioned by **Flyway** migrations (`src/main/resources/db/migration`). The domain model is organized around a central `User` entity with related entities for safety, nutrition, and family coverage:
+
+- **User & profile** — `users`, profile data, `user_allergy` / `user_disease` link tables, and account lifecycle state.
+- **Family members** — `family_member` with independent `family_member_allergy` / `family_member_disease` profiles, so the safety verdict can be computed for each household member.
+- **Scans** — `scan` records with ingredients, verdict, flagged ingredients, and status (the async pipeline output).
+- **Daily tracking** — `daily_tracking` and `daily_tracking_meal` (join to scans) for per-day meal & nutrition aggregation.
+- **Search sync** — `elasticsearch_sync` for the ES ↔ DB reconciliation and indexing bookkeeping.
+
+![Database Schema](images/database_schema.webp)
 
 ---
 
