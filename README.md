@@ -399,7 +399,9 @@ flowchart TD
 
 NutriScan uses **Keycloak 26.6** as its identity provider, deployed as a **custom image** on `https://auth.nutriscan.dev`.
 
-![authentication.png](images/authentication.png)
+<p align="center">
+  <img src="images/authentication.png" alt="authentication">
+</p>
 
 ### Customization
 - **Custom email-HTTP SPI** — a bespoke `EmailSenderProvider` that sends verification and password-reset emails through the **Resend HTTP API** instead of Keycloak's SMTP provider.
