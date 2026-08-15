@@ -19,6 +19,7 @@
 ## 📌 Table of Contents
 
 - [Overview](#overview)
+- [Project Goals / Motivation](#project-goals--motivation)
 - [Features](#features)
 - [AI Food-Safety Pipeline](#ai-food-safety-pipeline)
 - [System Architecture](#system-architecture)
@@ -34,6 +35,7 @@
 - [Deployment (Railway)](#deployment-railway)
 - [CI/CD Pipeline (GitHub Actions)](#cicd-pipeline-github-actions)
 - [UI State & Mobile Applications](#ui-state--mobile-applications)
+- [Demo Video](#demo-video)
 - [Team Members](#team-members)
 
 ---
@@ -55,6 +57,21 @@ Beyond scanning, NutriScan tracks **daily meals & nutrition**, manages **family 
 - **Elasticsearch + Kibana** provide full-text search and observability, with a **PostgreSQL fallback** if ES is unavailable.
 - **Redis + Spring Cache** cache AI results so repeat scans don't burn API tokens.
 - **Railway** deployment with a custom domain and GitHub Actions CI.
+
+---
+
+## 🎯 Project Goals / Motivation
+
+Every day, people make food choices without full knowledge of what they're consuming. Labels are dense, ingredients are hard to interpret, and — most importantly — what's safe for one person may be **dangerous for another**. A product that is perfectly fine for most people can trigger a life-threatening reaction for someone with a food allergy or a serious medical condition.
+
+NutriScan exists to close that gap. Instead of forcing the user to manually cross-check every ingredient against a list of allergies, NutriScan **automates the judgment**:
+
+- **Scan a product** by photo (OCR) or barcode — the platform extracts the real ingredients for you.
+- **Personalized safety verdict** — an AI "judge" compares those ingredients against the user's allergies and medical conditions and returns **Safe / Caution / Unsafe** with the flagged ingredients and reasons.
+- **Whole-family coverage** — because safety isn't just about one person, NutriScan lets the user maintain **family member profiles**, each with their own independent allergies and medical conditions. When shopping, the user can verify that a product is safe **not only for themselves, but for each family member**, turning a confusing, stressful grocery run into a confident, informed decision.
+- **Daily nutrition tracking** — beyond safety, the app tracks meals and nutrition to support healthier everyday habits.
+
+The motivation is simple: **make food safety knowledge accessible, instant, and personal** — so users can trust what's on their plate, and shop confidently for the people they care about.
 
 ---
 
@@ -630,6 +647,9 @@ This REST API is backend-ready and designed to be consumed by **mobile applicati
 | **Android** | Kotlin | [`NutriScan-Android`](https://github.com/yusefellban/NutriScan) |
 
 Both apps authenticate through the same Keycloak realm, call the same `/api/v1` endpoints, and consume the identification/role model exactly as described in **Authentication & Authorization**.
+
+---
+## 📽️ Demo Video
 
 ---
 
