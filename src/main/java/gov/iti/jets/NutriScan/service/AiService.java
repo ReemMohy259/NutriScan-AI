@@ -51,8 +51,10 @@ public class AiService {
         this.structuredChatClient = structuredChatClient;
     }
 
-    @Cacheable(cacheNames = "aiJudge", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
-        + "#requestData.ingredients(), #requestData.allergies(), #requestData.conditions())")
+    // @Cacheable(cacheNames = "aiJudge", key =
+    // "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
+    // + "#requestData.ingredients(), #requestData.allergies(),
+    // #requestData.conditions())")
     public FoodSafetyResponse checkSafety(IngredientsSafetyPrompt requestData) {
 
         String userPrompt = """
@@ -63,11 +65,15 @@ public class AiService {
 
             user medical conditions: %s
 
+
+            ---------------------------------------------
+            family members: %s
             """
             .formatted(
                 requestData.ingredients(),
                 requestData.allergies(),
-                requestData.conditions());
+                requestData.conditions(),
+                requestData.familyMembers());
 
         // return structuredChatClient.generate(
         // Prompts.FOOD_SAFETY_SYSTEM,
@@ -91,8 +97,10 @@ public class AiService {
             .entity(FoodSafetyResponse.class);
     }
 
-    @Cacheable(cacheNames = "aiBarcode", key = "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
-        + "#requestData.barcode(), #requestData.allergies(), #requestData.conditions())")
+    // @Cacheable(cacheNames = "aiBarcode", key =
+    // "T(gov.iti.jets.NutriScan.util.CacheKeys).barcodeSafetyKey("
+    // + "#requestData.barcode(), #requestData.allergies(),
+    // #requestData.conditions())")
     public FoodSafetyResponse checkBarcodeSafety(BarCodeSafetyPrompt requestData) {
 
         String userPrompt = """
@@ -105,6 +113,8 @@ public class AiService {
             ingredients: %s
             user allergies: %s
             user medical conditions: %s
+            ---------------------------------------------
+            family members: %s
             """.formatted(
             requestData.productName(),
             requestData.barcode(),
@@ -113,7 +123,8 @@ public class AiService {
             requestData.categories(),
             requestData.ingredients(),
             requestData.allergies(),
-            requestData.conditions());
+            requestData.conditions(),
+            requestData.familyMembers());
 
         // return opencodeChatClient.prompt()
         // .system(Prompts.BARCODE_FOOD_SAFETY_SYSTEM)
@@ -139,7 +150,9 @@ public class AiService {
 
             User medical conditions:
             %s
-            """.formatted(userData.allergies(), userData.conditions());
+            ---------------------------------------------
+            family members: %s
+            """.formatted(userData.allergies(), userData.conditions(), userData.familyMembers());
         try {
 
             Media media = new Media(

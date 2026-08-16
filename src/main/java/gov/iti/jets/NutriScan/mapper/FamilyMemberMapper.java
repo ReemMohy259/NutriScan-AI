@@ -3,6 +3,7 @@ package gov.iti.jets.NutriScan.mapper;
 import gov.iti.jets.NutriScan.dto.AllergyResponse;
 import gov.iti.jets.NutriScan.dto.DiseaseResponse;
 import gov.iti.jets.NutriScan.dto.FamilyMemberResponse;
+import gov.iti.jets.NutriScan.dto.ai.FamilyMemberAiRequest;
 import gov.iti.jets.NutriScan.model.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -18,6 +19,8 @@ public interface FamilyMemberMapper {
     FamilyMemberResponse toResponse(FamilyMember entity);
 
     List<FamilyMemberResponse> toResponseList(List<FamilyMember> entities);
+
+    List<FamilyMemberAiRequest> toAiResponseList(List<FamilyMember> entities);
 
     default List<AllergyResponse> mapAllergies(Set<FamilyMemberAllergy> allergies) {
         return allergies.stream().map(FamilyMemberAllergy::getAllergy).map(this::map).toList();

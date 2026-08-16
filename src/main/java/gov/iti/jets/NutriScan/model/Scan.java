@@ -1,5 +1,6 @@
 package gov.iti.jets.NutriScan.model;
 
+import gov.iti.jets.NutriScan.dto.ai.FamilyAlertDto;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import jakarta.persistence.*;
@@ -67,6 +68,9 @@ public class Scan {
     @OneToMany(mappedBy = "scan", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ScanFlaggedIngredient> scanFlaggedIngredients = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "scan", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ScanFamilyAlert> familyAlerts = new LinkedHashSet<>();
+
     @OneToMany(mappedBy = "scan", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Set<DailyTrackingMeal> dailyTrackingMeals = new HashSet<>();
 
@@ -85,6 +89,20 @@ public class Scan {
         if (scanFlaggedIngredient != null) {
             scanFlaggedIngredients.remove(scanFlaggedIngredient);
             scanFlaggedIngredient.setScan(null);
+        }
+    }
+
+    public void addScanFamilyAlert(ScanFamilyAlert scanFamilyAlert) {
+        if (scanFamilyAlert != null) {
+            familyAlerts.add(scanFamilyAlert);
+            scanFamilyAlert.setScan(this);
+        }
+    }
+
+    public void removeScanFamilyAlert(ScanFamilyAlert scanFamilyAlert) {
+        if (scanFamilyAlert != null) {
+            familyAlerts.remove(scanFamilyAlert);
+            scanFamilyAlert.setScan(null);
         }
     }
 
