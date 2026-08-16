@@ -2,6 +2,7 @@ package gov.iti.jets.NutriScan.service;
 
 import gov.iti.jets.NutriScan.config.properties.AccountProperties;
 import gov.iti.jets.NutriScan.dto.*;
+import gov.iti.jets.NutriScan.dto.ai.FamilyMemberAiRequest;
 import gov.iti.jets.NutriScan.exception.*;
 import gov.iti.jets.NutriScan.listener.event.UserDeletedEvent;
 import gov.iti.jets.NutriScan.mapper.AllergyMapper;
@@ -95,7 +96,7 @@ public class UserService {
             @CacheEvict(value = "userSummary", key = "#jwt.getClaim('sub')", condition = "(#request.firstName() != null && !#request.firstName().isBlank()) "
                 + "|| (#request.lastName() != null && !#request.lastName().isBlank())"),
             @CacheEvict(value = "userProfile", key = "#jwt.getClaim('sub')"),
-            @CacheEvict(value = "userAllergiesAndConditions", key = "#jwt.getClaim('sub')", condition = "#request.allergyIds() != null || #request.diseaseIds() != null"),})
+            @CacheEvict(value = "userAllergiesAndConditions", key = "#jwt.getClaim('sub')", condition = "#request.allergyIds() != null || #request.diseaseIds() != null || #request.familyMembers() != null"),})
     public void updateUserProfile(UpdateProfileRequest request, Jwt jwt) {
 
         String userId = jwt.getClaim("sub");
@@ -241,8 +242,9 @@ public class UserService {
     }
 
     @Cacheable(value = "userAllergiesAndConditions", key = "#userId.toString()")
-    public UserAllergiesAndConditionsResponse getUserAllergiesAndConditions(UUID userId) {
-        User user = userRepository.findByIdWithAllergiesAndDiseases(userId)
+    public UserAllergiesAndConditionsAndFamilyMembersResponse getUserAllergiesAndConditionsWithFamilyMembers(
+        UUID userId) {
+        User user = userRepository.findByIdWithAllergiesAndDiseasesAndFamilyMembers(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         List<String> allergies = user.getUserAllergies()
@@ -255,7 +257,13 @@ public class UserService {
             .map(userDisease -> userDisease.getDisease().getName())
             .toList();
 
-        return new UserAllergiesAndConditionsResponse(allergies, diseases);
+        List<FamilyMemberAiRequest> familyMembers = familyMemberMapper
+            .toAiResponseList(user.getFamilyMembers().stream().toList());
+
+        return new UserAllergiesAndConditionsAndFamilyMembersResponse(
+            allergies,
+            diseases,
+            familyMembers);
     }
 
     // eviction inside the method body

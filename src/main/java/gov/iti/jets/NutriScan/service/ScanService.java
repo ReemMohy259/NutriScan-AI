@@ -8,10 +8,7 @@ import gov.iti.jets.NutriScan.listener.event.ScanDeletedEvent;
 import gov.iti.jets.NutriScan.listener.event.ScanStatusChangedEvent;
 import gov.iti.jets.NutriScan.mapper.NutritionFactMapper;
 import gov.iti.jets.NutriScan.mapper.ScanMapper;
-import gov.iti.jets.NutriScan.model.NutritionFact;
-import gov.iti.jets.NutriScan.model.Scan;
-import gov.iti.jets.NutriScan.model.ScanFlaggedIngredient;
-import gov.iti.jets.NutriScan.model.User;
+import gov.iti.jets.NutriScan.model.*;
 import gov.iti.jets.NutriScan.repository.ScanRepository;
 import gov.iti.jets.NutriScan.repository.UserRepository;
 import gov.iti.jets.NutriScan.repository.specification.ScanSpecification;
@@ -25,7 +22,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
@@ -106,7 +102,7 @@ public class ScanService {
 
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        Scan scan = scanRepository.findById(scanId)
+        Scan scan = scanRepository.findByIdWithDetails(scanId, userId)
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
 
         try {
@@ -121,15 +117,16 @@ public class ScanService {
                 throw new ImageTooBlurry("Image is blurry please take a clearer picture");
 
             if (ocrResponse.isMeal()) {
-                UserAllergiesAndConditionsResponse userData = userService
-                    .getUserAllergiesAndConditions(userId);
+                UserAllergiesAndConditionsAndFamilyMembersResponse userData = userService
+                    .getUserAllergiesAndConditionsWithFamilyMembers(userId);
 
                 MealFoodSafetyResponse response = aiService.mealCheckSafety(
                     bytes,
                     contentType,
                     new MealIngredientsSafetyPrompt(
                         userData.getAllergies(),
-                        userData.getDiseases()));
+                        userData.getDiseases(),
+                        userData.getFamilyMembers()));
 
                 System.out.println(response);
                 long endTime = System.nanoTime();
@@ -165,14 +162,15 @@ public class ScanService {
             if (ingredients == null || ingredients.isEmpty())
                 throw new IngredientParsingException("Failed to parse ingredients.");
 
-            UserAllergiesAndConditionsResponse userData = userService
-                .getUserAllergiesAndConditions(userId);
+            UserAllergiesAndConditionsAndFamilyMembersResponse userData = userService
+                .getUserAllergiesAndConditionsWithFamilyMembers(userId);
 
             FoodSafetyResponse result = aiService.checkSafety(
                 new IngredientsSafetyPrompt(
                     ingredients,
                     userData.getAllergies(),
-                    userData.getDiseases()));
+                    userData.getDiseases(),
+                    userData.getFamilyMembers()));
 
             updateCompletedScan(
                 ocrResponse.getProductName(),
@@ -235,7 +233,7 @@ public class ScanService {
 
         log.info("Starting barcode scan processing for scanId: {}, barcode: {}", scanId, barcode);
 
-        Scan scan = scanRepository.findById(scanId)
+        Scan scan = scanRepository.findByIdWithDetails(scanId, userId)
             .orElseThrow(() -> new ScanNotFoundException("Scan not found with id: " + scanId));
 
         try {
@@ -260,8 +258,8 @@ public class ScanService {
 
             List<String> traces = openFoodFactsService.extractTraces(product);
             log.debug("Fetching user allergies and conditions");
-            UserAllergiesAndConditionsResponse userData = userService
-                .getUserAllergiesAndConditions(userId);
+            UserAllergiesAndConditionsAndFamilyMembersResponse userData = userService
+                .getUserAllergiesAndConditionsWithFamilyMembers(userId);
             log.debug(
                 "User allergies: {}, conditions: {}",
                 userData.getAllergies(),
@@ -277,7 +275,8 @@ public class ScanService {
                     userData.getAllergies(),
                     userData.getDiseases(),
                     allergens,
-                    traces));
+                    traces,
+                    userData.getFamilyMembers()));
             log.info(
                 "AI safety check completed: verdict={}, flaggedCount={}",
                 result.verdict(),
@@ -336,13 +335,11 @@ public class ScanService {
         scan.setStatus(ScanStatus.COMPLETED);
         scan.setVerdict(response.verdict());
         scan.setSummary(response.summary());
-        scan.getScanFlaggedIngredients().clear();
+        // scan.getScanFlaggedIngredients().clear();
 
         if (imageUrl != null) {
             scan.setImageUrl(imageUrl);
         }
-
-        System.out.println(nutritionFacts);
 
         if (!nutritionFacts.isEmpty()) {
             NutritionFact nutritionFact = nutritionFactMapper.toEntity(nutritionFacts);
@@ -358,6 +355,15 @@ public class ScanService {
                         .ingredientName(flaggedIngredient.ingredient())
                         .type(flaggedIngredient.type().name())
                         .reason(flaggedIngredient.reason())
+                        .build()));
+
+        response.familyAlerts()
+            .forEach(
+                familyAlert -> scan.addScanFamilyAlert(
+                    ScanFamilyAlert.builder()
+                        .targetProfile(familyAlert.targetProfile())
+                        .verdict(familyAlert.severity())
+                        .reason(familyAlert.reason())
                         .build()));
 
         Cache cache = cacheManager.getCache("scans");
@@ -442,7 +448,7 @@ public class ScanService {
             return searchUsingSpecification(userId, request, pageable);
         }
 
-        // Elasticsearch is available but may not contain the newly-created scan yet.
+        // Elasticsearch is available but may not contain the newly created scan yet.
         if (searchResult.totalElements() == 0) {
             return searchUsingSpecification(userId, request, pageable);
         }

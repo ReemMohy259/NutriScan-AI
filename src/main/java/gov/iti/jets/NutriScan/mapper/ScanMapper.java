@@ -3,10 +3,12 @@ package gov.iti.jets.NutriScan.mapper;
 import gov.iti.jets.NutriScan.dto.ScanResultResponse;
 import gov.iti.jets.NutriScan.dto.ScanSubmitResponse;
 import gov.iti.jets.NutriScan.dto.ScanSummaryResponse;
+import gov.iti.jets.NutriScan.dto.ai.FamilyAlertDto;
 import gov.iti.jets.NutriScan.dto.ai.FlaggedIngredient;
 import gov.iti.jets.NutriScan.dto.ai.FoodSafetyResponse;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.model.Scan;
+import gov.iti.jets.NutriScan.model.ScanFamilyAlert;
 import gov.iti.jets.NutriScan.model.ScanFlaggedIngredient;
 import gov.iti.jets.NutriScan.model.elasticsearch.ScanDocument;
 import org.mapstruct.Mapper;
@@ -36,7 +38,8 @@ public interface ScanMapper {
         return new FoodSafetyResponse(
             scan.getVerdict(),
             mapScanFlaggedIngredientsToFlaggedIngredients(scan.getScanFlaggedIngredients()),
-            scan.getSummary());
+            scan.getSummary(),
+            mapScanFamilyAlert(scan.getFamilyAlerts()));
     }
 
     default List<FlaggedIngredient> mapScanFlaggedIngredientsToFlaggedIngredients(
@@ -47,6 +50,22 @@ public interface ScanMapper {
         }
 
         return set.stream().map(this::mapScanFlaggedIngredientToFlaggedIngredient).toList();
+    }
+
+    default List<FamilyAlertDto> mapScanFamilyAlert(Set<ScanFamilyAlert> set) {
+
+        if (set == null) {
+            return List.of();
+        }
+
+        return set.stream()
+            .map(
+                scanFamilyAlert -> new FamilyAlertDto(
+                    scanFamilyAlert.getTargetProfile(),
+                    scanFamilyAlert.getVerdict(),
+                    scanFamilyAlert.getReason()))
+            .toList();
+
     }
 
     default FlaggedIngredient mapScanFlaggedIngredientToFlaggedIngredient(

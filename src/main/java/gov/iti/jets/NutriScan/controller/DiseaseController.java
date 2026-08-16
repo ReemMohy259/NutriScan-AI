@@ -1,6 +1,8 @@
 package gov.iti.jets.NutriScan.controller;
 
 import gov.iti.jets.NutriScan.dto.DiseaseResponse;
+import gov.iti.jets.NutriScan.ratelimit.RateLimit;
+import gov.iti.jets.NutriScan.ratelimit.RateLimitKeyType;
 import gov.iti.jets.NutriScan.service.DiseaseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,11 +19,13 @@ public class DiseaseController {
 
     private final DiseaseService diseaseService;
 
+    @RateLimit(limit = 350, keyType = RateLimitKeyType.IP)
     @GetMapping
     public List<DiseaseResponse> getAllDiseases() {
         return diseaseService.findAll();
     }
 
+    @RateLimit(limit = 350, keyType = RateLimitKeyType.IP)
     @GetMapping("/{id}")
     public DiseaseResponse getDiseaseById(@PathVariable Integer id) {
         return diseaseService.findById(id);
