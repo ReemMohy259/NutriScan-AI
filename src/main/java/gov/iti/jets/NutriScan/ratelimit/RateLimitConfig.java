@@ -6,7 +6,6 @@ import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import io.lettuce.core.AbstractRedisClient;
 import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.codec.RedisCodec;
@@ -20,16 +19,12 @@ import java.time.Duration;
 @Configuration
 public class RateLimitConfig {
 
-    @Value("${spring.data.redis.host}")
-    private String redisHost;
-
-    @Value("${spring.data.redis.port}")
-    private int redisPort;
+    @Value("${spring.data.redis.url}")
+    private String redisUrl;
 
     @Bean(destroyMethod = "shutdown")
     public AbstractRedisClient redisClient() {
-        RedisURI redisUri = RedisURI.builder().withHost(redisHost).withPort(redisPort).build();
-        return RedisClient.create(redisUri);
+        return RedisClient.create(redisUrl);
     }
 
     @Bean
