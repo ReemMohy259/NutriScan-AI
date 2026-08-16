@@ -1,6 +1,8 @@
 package gov.iti.jets.NutriScan.controller;
 
 import gov.iti.jets.NutriScan.dto.AllergyResponse;
+import gov.iti.jets.NutriScan.ratelimit.RateLimit;
+import gov.iti.jets.NutriScan.ratelimit.RateLimitKeyType;
 import gov.iti.jets.NutriScan.service.AllergyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,11 +19,13 @@ public class AllergyController {
 
     private final AllergyService allergyService;
 
+    @RateLimit(limit = 350, keyType = RateLimitKeyType.IP)
     @GetMapping
     public List<AllergyResponse> getAllAllergies() {
         return allergyService.findAll();
     }
 
+    @RateLimit(limit = 350, keyType = RateLimitKeyType.IP)
     @GetMapping("/{id}")
     public AllergyResponse getAllergyById(@PathVariable Integer id) {
         return allergyService.findById(id);
