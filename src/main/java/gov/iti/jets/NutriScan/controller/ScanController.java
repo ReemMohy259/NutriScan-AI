@@ -4,6 +4,8 @@ import gov.iti.jets.NutriScan.dto.*;
 import gov.iti.jets.NutriScan.dto.ai.ScanStatus;
 import gov.iti.jets.NutriScan.dto.ai.Verdict;
 import gov.iti.jets.NutriScan.exception.InvalidImageException;
+import gov.iti.jets.NutriScan.ratelimit.RateLimit;
+import gov.iti.jets.NutriScan.ratelimit.RateLimitKeyType;
 import gov.iti.jets.NutriScan.service.ScanSearchService;
 import gov.iti.jets.NutriScan.service.ScanService;
 import gov.iti.jets.NutriScan.util.ImageValidationUtils;
@@ -36,6 +38,7 @@ public class ScanController {
     private final ScanService scanService;
     private final ScanSearchService scanSearchService;
 
+    @RateLimit(limit = 5)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<ScanSubmitResponse> scan(
@@ -61,6 +64,7 @@ public class ScanController {
         return ResponseEntity.accepted().body(result);
     }
 
+    @RateLimit(limit = 60)
     @GetMapping("/{scanId}")
     public ScanResultResponse getScanResult(
         @AuthenticationPrincipal Jwt jwt,
@@ -68,6 +72,7 @@ public class ScanController {
         return scanService.findById(scanId, jwt);
     }
 
+    @RateLimit(limit = 30)
     @PatchMapping("/{scanId}")
     public ResponseEntity<ScanResultResponse> updateScanName(
         @AuthenticationPrincipal Jwt jwt,
@@ -79,6 +84,7 @@ public class ScanController {
         return ResponseEntity.ok().body(scan);
     }
 
+    @RateLimit(limit = 5)
     @PostMapping(value = "/barcode")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<ScanSubmitResponse> scanBarcode(
@@ -92,6 +98,7 @@ public class ScanController {
         return ResponseEntity.accepted().body(result);
     }
 
+    @RateLimit(limit = 80)
     @GetMapping
     public Page<ScanSummaryResponse> getScans(
         @AuthenticationPrincipal Jwt jwt,
@@ -113,6 +120,7 @@ public class ScanController {
         return scanService.findScansByUserIdAndFilters(jwt, request);
     }
 
+    @RateLimit(limit = 60)
     @GetMapping("/favorites")
     public Page<ScanSummaryResponse> getFavoriteScans(
         @AuthenticationPrincipal Jwt jwt,
@@ -124,6 +132,7 @@ public class ScanController {
         return scanService.findFavoritesByUserId(jwt, validated);
     }
 
+    @RateLimit(limit = 5)
     @DeleteMapping("/{scanId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteScan(@AuthenticationPrincipal Jwt jwt, @PathVariable String scanId) {

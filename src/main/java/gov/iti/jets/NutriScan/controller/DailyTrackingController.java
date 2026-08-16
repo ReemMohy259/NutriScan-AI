@@ -1,6 +1,7 @@
 package gov.iti.jets.NutriScan.controller;
 
 import gov.iti.jets.NutriScan.dto.*;
+import gov.iti.jets.NutriScan.ratelimit.RateLimit;
 import gov.iti.jets.NutriScan.service.DailyTrackingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -27,11 +28,13 @@ public class DailyTrackingController {
 
     private final DailyTrackingService dailyTrackingService;
 
+    @RateLimit(limit = 60)
     @GetMapping("/today")
     public DailyTrackingResponse getToday(@AuthenticationPrincipal Jwt jwt) {
         return dailyTrackingService.getOrCreateToday(jwt);
     }
 
+    @RateLimit(limit = 60)
     @GetMapping("/{date}")
     public DailyTrackingResponse getByDate(
         @AuthenticationPrincipal Jwt jwt,
@@ -39,6 +42,7 @@ public class DailyTrackingController {
         return dailyTrackingService.getByDate(jwt, date);
     }
 
+    @RateLimit(limit = 60)
     @GetMapping
     public Page<DailyTrackingSummaryResponse> getAll(
         @AuthenticationPrincipal Jwt jwt,
@@ -49,6 +53,7 @@ public class DailyTrackingController {
         return dailyTrackingService.getAll(jwt, pageable);
     }
 
+    @RateLimit(limit = 30)
     @PatchMapping("/{date}")
     public DailyTrackingResponse updateTracking(
         @AuthenticationPrincipal Jwt jwt,
@@ -57,6 +62,7 @@ public class DailyTrackingController {
         return dailyTrackingService.updateTracking(jwt, date, request);
     }
 
+    @RateLimit(limit = 60)
     @PostMapping("/{date}/meals")
     public ResponseEntity<DailyTrackingMealResponse> addMeal(
         @AuthenticationPrincipal Jwt jwt,
@@ -66,6 +72,7 @@ public class DailyTrackingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @RateLimit(limit = 60)
     @PutMapping("/{date}/meals/{scanId}")
     public DailyTrackingMealResponse updateMeal(
         @AuthenticationPrincipal Jwt jwt,
@@ -75,6 +82,7 @@ public class DailyTrackingController {
         return dailyTrackingService.updateMeal(jwt, date, scanId, request.mealCnt());
     }
 
+    @RateLimit(limit = 60)
     @DeleteMapping("/{date}/meals/{scanId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeMeal(
@@ -84,6 +92,7 @@ public class DailyTrackingController {
         dailyTrackingService.removeMeal(jwt, date, scanId);
     }
 
+    @RateLimit(limit = 5)
     @DeleteMapping("/{date}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTracking(
