@@ -357,15 +357,16 @@ public class ScanService {
                         .reason(flaggedIngredient.reason())
                         .build()));
 
-        response.familyAlerts()
-            .forEach(
-                familyAlert -> scan.addScanFamilyAlert(
-                    ScanFamilyAlert.builder()
-                        .targetProfile(familyAlert.targetProfile())
-                        .verdict(familyAlert.severity())
-                        .reason(familyAlert.reason())
-                        .build()));
-
+        if (response.familyAlerts() != null && !response.familyAlerts().isEmpty()) {
+            response.familyAlerts()
+                .forEach(
+                    familyAlert -> scan.addScanFamilyAlert(
+                        ScanFamilyAlert.builder()
+                            .targetProfile(familyAlert.targetProfile())
+                            .verdict(familyAlert.severity())
+                            .reason(familyAlert.reason())
+                            .build()));
+        }
         Cache cache = cacheManager.getCache("scans");
         if (cache != null) {
             cache.put(
