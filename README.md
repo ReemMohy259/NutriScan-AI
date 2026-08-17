@@ -96,46 +96,53 @@ The motivation is simple: **make food safety knowledge accessible, instant, and 
 
 ## 🤖 AI Food-Safety Pipeline
 
-We designed the food-safety analysis around an agentic pipeline rather than a fixed linear chain — the judge model can autonomously decide when the extracted data is insufficient and trigger a Tavily web search to fill the gaps before rendering a verdict. This gives the system the flexibility to self-correct and gather more context instead of failing or guessing on incomplete label scans.
+We designed the food-safety analysis around an agentic pipeline rather than a fixed linear chain. After OCR, a dedicated model determines whether the image is a **meal** or a **packaged product**, and each path is handled by its own specialized model. For products, the **OCR output itself is evaluated for completeness** — if the extracted data isn't sufficient, a **search model** (via Tavily) is triggered to fill the gaps *before* the data ever reaches the judge. This gives the system the flexibility to self-correct and gather more context instead of failing or guessing on incomplete label scans.
 
 ```mermaid
 flowchart TD
-    A[User Action] --> B[Snap a Photo]
-    A --> C[Scan a Barcode]
+A[User Action] --> B[Snap a Photo]
+A --> C[Scan a Barcode]
 
     B --> D[Gemini OCR<br/>Vision Model]
     C --> E[OpenFoodFacts<br/>Barcode Lookup]
 
     D -->|Irrelevant Image| DF[Scan Failed]
-    D -->|Success: Ingredients + Nutrition<br/>+ Product Name if available| F[Extracted Product Data]
+    D -->|Detects: Meal| M["Gemini 'Meal Safety' Model<br/>Extracts meal ingredients"]
+    D -->|Detects: Product| PCheck{OCR Data<br/>Sufficient?}
+
+    PCheck -->|Yes| F[Extracted Product Data]
+    PCheck -->|No| SModel["Gemini 'Search' Model<br/>Tavily Tool Call<br/>Web Search for Product Info"]
+    SModel -->|Extracted Ingredients| F
+
     E --> F
 
-    F --> G["Gemini 'Judge'<br/>Combines product data with user's<br/>allergies + medical conditions"]
+    M --> MC["Checks ingredients against user's<br/>allergies + medical conditions"]
+    MC --> H
 
-    G -->|Insufficient data extracted| S[Tavily Tool Call<br/>Web Search for Product Info]
-    S --> G
+    F --> G["Gemini 'Judge' Model<br/>Combines product data with user's<br/>allergies + medical conditions"]
 
     G --> H[Personalized Verdict<br/>SAFE / CAUTION / UNSAFE]
 ```
 
 ### How it works
 1. **Image capture** — the user submits a product photo or scans a barcode.
-2. **OCR extraction** — for photos, a dedicated **Gemini** vision model reads the label. If the image is irrelevant (not a food label), the scan fails immediately. Otherwise, it extracts the ingredients, nutrition facts, and product name (when legible).
-3. **Barcode path** — for barcodes, **OpenFoodFacts** is used instead of OCR to retrieve product data directly.
-4. **Safety judgment** — a **Gemini "judge"** prompt combines the extracted product data with the user's allergies and medical conditions.
-5. **Search fallback** — if the OCR output doesn't give the judge enough detail to make a confident call, the judge invokes the **Tavily** tool to search the web for additional product data before finalizing its decision.
-6. **Verdict** — the judge returns a structured **SAFE / CAUTION / UNSAFE** verdict personalized to the user's health profile.
+2. **OCR extraction** — a dedicated **Gemini** vision model reads the image. If it's irrelevant (not food-related), the scan fails immediately. Otherwise, it classifies the image as either a **meal** or a **packaged product**.
+3. **Meal path** — if OCR detects a **meal**, a separate **Gemini "meal safety" model** takes over: it extracts the meal's ingredients and directly checks them against the user's allergies and medical conditions to produce a verdict.
+4. **Product path** — if OCR detects a **packaged product**, the OCR output (ingredients, nutrition facts, product name) is evaluated for completeness.
+5. **Search fallback** — if the OCR data is **insufficient**, a dedicated **Gemini "search" model** is triggered before the judge runs. It uses the **Tavily** tool to search the web and is responsible only for **extracting ingredients** from the results, which are then merged into the product data.
+6. **Barcode path** — for barcodes, **OpenFoodFacts** is used instead of OCR to retrieve product data directly.
+7. **Safety judgment** — for the product path, a **Gemini "judge"** prompt combines the final product data (OCR-only, or OCR + search) with the user's allergies and medical conditions.
+8. **Verdict** — the judge (product path) or meal safety model (meal path) returns a structured **SAFE / CAUTION / UNSAFE** verdict personalized to the user's health profile.
 
 ### AI providers used
 
 | Provider                      | Role                                                      | Model / Service |
 | ----------------------------- | --------------------------------------------------------- | --------------- |
-| **Google Gemini** (Spring AI) | OCR / Vision, safety judge, search fallback               | Gemini Flash    |
+| **Google Gemini** (Spring AI) | OCR / Vision, meal classification, meal safety, judge, search extraction | Gemini Flash    |
 | **AWS Bedrock** (Spring AI)   | Alternative structured chat                               | Claude (Sonnet) |
 | **OpenAI-compatible**         | Alternative chat client                                   | via opencode.ai |
 | **Tavily** (tool)             | Web search fallback when product image data is incomplete | API             |
 | **OpenFoodFacts**             | Barcode-based product information lookup                  | REST API        |
-
 ---
 
 ## 🏗️ System Architecture
