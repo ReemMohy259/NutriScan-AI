@@ -46,19 +46,20 @@ public final class Prompts {
             - "CAUTION" when there is a relevant concern that does not directly match a declared allergy or condition, but is commonly recognized as potentially relevant.
          12. `reason` must be a short factual explanation mentioning the relevant ingredient and the family member's declared allergy or disease when applicable.
          13. Do not create a `familyAlerts` entry for a family member when none of the ingredients are relevant to their declared allergies or diseases.
+         14.Verdict is based on the user's declared chronic_conditions and allergies only and not the family members they are only for alerts.
 
          ## Verdict Rules
 
          Return exactly one verdict:
 
          - "unsafe"
-           - One or more ingredients directly match or are recognized derivatives of a declared allergy or chronic condition.
+           - One or more ingredients directly match or are recognized derivatives of a user's declared allergy or chronic condition.
 
          - "caution"
-           - No allergy or condition directly matches, but one or more ingredients are commonly recognized derivatives of a declared allergen or chronic condition or excessive use of specific ingredients is generally wrong.
+           - No allergy or condition directly matches, but one or more ingredients are commonly recognized derivatives of a user's declared allergen or chronic condition or excessive use of specific ingredients is generally wrong.
 
          - "safe"
-           - No ingredients match any declared allergy or chronic condition.
+           - No ingredients match any declared allergy or chronic condition For the user.
 
          ## Output
 
@@ -160,20 +161,20 @@ public final class Prompts {
             - "CAUTION" when there is a relevant concern that does not directly match a declared allergy or condition, but is commonly recognized as potentially relevant.
         13. `reason` must be a short factual explanation mentioning the relevant ingredient and the family member's declared allergy or disease when applicable.
         14. Do not create a `familyAlerts` entry for a family member when none of the ingredients are relevant to their declared allergies or diseases.
+        15.Verdict is based on the user's declared chronic_conditions and allergies only and not the family members they are only for alerts.
 
         ## Verdict Rules
 
         Return exactly one verdict:
 
         - "unsafe"
-          - One or more ingredients directly match or are recognized derivatives of a declared allergy or condition.
-          - OR product is not edible (non-food item).
+          - One or more ingredients directly match or are recognized derivatives of a user's declared allergy or chronic condition.
 
         - "caution"
-          - No allergy or condition directly matches, but one or more ingredients are commonly recognized derivatives of a declared allergen or condition or excessive use of specific ingredients is generally wrong.
+          - No allergy or condition directly matches, but one or more ingredients are commonly recognized derivatives of a user's declared allergen or chronic condition or excessive use of specific ingredients is generally wrong.
 
         - "safe"
-          - No ingredients match any declared allergy or condition.
+          - No ingredients match any declared allergy or chronic condition For the user.
 
         ## Output
 
@@ -285,6 +286,7 @@ public final class Prompts {
             - "CAUTION" when there is a relevant concern that does not directly match a declared allergy or condition, but is commonly recognized as potentially relevant.
         10. `reason` must be a short factual explanation mentioning the relevant ingredient and the family member's declared allergy or disease when applicable.
         11. Do not create a `familyAlerts` entry for a family member when none of the ingredients are relevant to their declared allergies or diseases.
+        12.Verdict is based on the user's declared chronic_conditions and allergies only and not the family members they are only for alerts.
 
 
         Return the estimates in the `nutritionFacts` object using the following types:
@@ -374,6 +376,7 @@ public final class Prompts {
         - If no family members have any relevant ingredient matches, return:
             "familyAlerts": null
         - Do not mention that nutrition values are estimated in the JSON output.
+        - Verdict is based on the user's declared chronic_conditions and allergies only and not the family members.
         - Return only valid JSON.
         """;
 
