@@ -674,6 +674,9 @@ Both apps authenticate through the same Keycloak realm, call the same `/api/v1` 
 
 ---
 ## 📽️ Demo Video
+[`Android Demo Link`](https://drive.google.com/file/d/1bQr2lka1xY29C8ITIwhJlQej4UzK0XrA/view?usp=drive_link)
+
+[`iOS Demo Link`](https://drive.google.com/file/d/1ZTW0kZfmjPP1QFhv61vbiU4lyfbj_KVy/view?usp=sharing)
 
 ---
 
